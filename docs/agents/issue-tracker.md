@@ -2,7 +2,7 @@
 
 Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
 
-No GitHub remote is configured yet (this repo was just `git init`'d). Once a GitHub remote is added, `gh` will infer the repo automatically when run inside this clone.
+Repo: [adeel-boson/UPresent](https://github.com/adeel-boson/UPresent).
 
 ## Conventions
 

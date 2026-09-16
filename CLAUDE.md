@@ -2,7 +2,7 @@
 
 ### Issue tracker
 
-GitHub Issues via the `gh` CLI (no remote configured yet). See `docs/agents/issue-tracker.md`.
+GitHub Issues via the `gh` CLI, repo [adeel-boson/UPresent](https://github.com/adeel-boson/UPresent). See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
