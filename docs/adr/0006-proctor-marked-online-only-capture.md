@@ -1,0 +1,5 @@
+# Proctor-marked, online-only attendance capture for v1
+
+Attendance in v1 is always marked by a `teacher` (or self-assigned `org-admin`) from the roster — never by attendee self-check-in (QR scan, geofence, etc.), and the app requires connectivity (no offline-tolerant/local-first capture). Both were real options: self-check-in scales better and needs no proctor action, but is vulnerable to proxy/buddy-punching and would have required building attendee-facing auth ([ADR-0005](./0005-generic-entity-hierarchy.md) explicitly excludes attendee accounts in v1). Offline support would handle classroom wifi flakiness but requires local-first state and sync/conflict-resolution logic. Both were deferred as scope, not technical impossibilities — a future reader should not assume proctor-marked/online-only is a permanent architectural ceiling.
+
+Camera-feed-based automatic marking was also considered as a longer-term capture method; see `docs/ideas/camera-based-attendance.md` (gitignored, not part of tracked history).

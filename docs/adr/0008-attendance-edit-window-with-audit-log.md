@@ -1,0 +1,3 @@
+# Bounded attendance edit window with mandatory audit log
+
+`AttendanceRecord`s can be edited by a `teacher`/`org-admin` within a bounded time window after the `Session` (not indefinitely, not never), and every edit is captured in `AttendanceAuditLog` (who changed it, when, from what to what). Unbounded edits were rejected because attendance can affect academic standing and compliance reporting — silent, un-audited rewrites weeks later would undermine the record's trustworthiness. No-edits-ever was also rejected as unforgiving of ordinary proctor mistakes. The audit log is a small addition (one append-only table) relative to the trust it buys, so it's built in from v1 rather than bolted on later once real compliance questions arise.
