@@ -5,6 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth/password";
 
 export const authConfig = {
+  // Auth.js won't trust the request's Host header in production unless told
+  // to — needed for `npm run start` locally, and for self-hosting generally
+  // (Vercel is trusted automatically). Safe here: nothing sits in front of
+  // this app rewriting the Host header from an untrusted origin.
+  trustHost: true,
   session: {
     // Credentials-based sign-in requires JWT sessions — Auth.js can't
     // persist a database session for a provider it doesn't control.
