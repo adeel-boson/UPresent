@@ -8,7 +8,9 @@ services:
       POSTGRES_PASSWORD: upresent
       POSTGRES_DB: upresent
     ports:
-      - "5432:5432"
+      # Host port 5433 (not 5432) to avoid clashing with a locally installed
+      # Postgres. The container's own port stays 5432.
+      - "5433:5432"
     volumes:
       - upresent-postgres-data:/var/lib/postgresql/data
     healthcheck:
