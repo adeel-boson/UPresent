@@ -1,6 +1,8 @@
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 
+import { prisma } from "@/lib/prisma";
+
 const execAsync = promisify(exec);
 
 export interface SchemaProvisioner {
@@ -19,6 +21,13 @@ export const prismaSchemaProvisioner: SchemaProvisioner = {
     if (!baseUrl) {
       throw new Error("DATABASE_URL is not set");
     }
+
+    // The `schema` connection parameter only sets `search_path` for the
+    // migration run below — it doesn't create the schema, so that has to
+    // happen first. schemaName is always our own generateSchemaName()
+    // output (`org_` + hex), never user input, so interpolating it here is
+    // safe.
+    await prisma.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
 
     const tenantUrl = new URL(baseUrl);
     tenantUrl.searchParams.set("schema", schemaName);
