@@ -26,6 +26,9 @@ export default function LoginPage() {
           {pending ? "Logging in…" : "Log in"}
         </button>
       </form>
+      <p>
+        Need an account? <a href="/signup">Sign up your organization</a>
+      </p>
     </main>
   );
 }

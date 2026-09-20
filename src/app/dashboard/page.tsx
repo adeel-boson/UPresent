@@ -15,6 +15,11 @@ export default async function DashboardPage() {
       <p>
         Logged in as <strong>{session.user.email}</strong> ({session.user.role})
       </p>
+      {session.user.role === "SUPER_ADMIN" ? (
+        <p>
+          <a href="/admin/signups">Pending signup requests</a>
+        </p>
+      ) : null}
       <form
         action={async () => {
           "use server";

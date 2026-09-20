@@ -7,10 +7,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Only SUPER_ADMIN is usable today. ORG_ADMIN and HOST are declared here
-// because the login/session model needs to know the full set of roles it
-// will eventually carry, but nothing in this ticket issues those roles —
-// see CONTEXT.md for the role definitions.
+// HOST is declared here because the login/session model needs to know the
+// full set of roles it will eventually carry, but nothing yet issues that
+// role — see CONTEXT.md for the role definitions.
 enum Role {
   SUPER_ADMIN
   ORG_ADMIN
@@ -18,11 +17,38 @@ enum Role {
 }
 
 model User {
-  id             String    @id @default(cuid())
-  email          String    @unique
+  id             String        @id @default(cuid())
+  email          String        @unique
   hashedPassword String
   role           Role
   emailVerified  DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+// v1 scope is schools and colleges (see CONTEXT.md); more institution types
+// will be added as the product extends to universities and event organizers.
+enum InstitutionType {
+  SCHOOL
+  COLLEGE
+}
+
+enum OrganizationStatus {
+  PENDING
+  APPROVED
+}
+
+model Organization {
+  id              String             @id @default(cuid())
+  name            String
+  institutionType InstitutionType
+  status          OrganizationStatus @default(PENDING)
+  // The dedicated Postgres schema this Organization's tenant data lives in
+  // (see ADR-0001). Assigned at signup, provisioned on approval.
+  schemaName      String             @unique
+  createdAt       DateTime           @default(now())
+  approvedAt      DateTime?
+  users           User[]
 }

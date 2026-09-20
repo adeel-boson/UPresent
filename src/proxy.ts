@@ -2,11 +2,14 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 
+const PUBLIC_PATHS = ["/login", "/signup"];
+
 export default auth((request) => {
   const isLoggedIn = Boolean(request.auth?.user);
   const isOnLogin = request.nextUrl.pathname === "/login";
+  const isOnPublicPath = PUBLIC_PATHS.includes(request.nextUrl.pathname);
 
-  if (!isLoggedIn && !isOnLogin) {
+  if (!isLoggedIn && !isOnPublicPath) {
     return NextResponse.redirect(new URL("/login", request.nextUrl));
   }
 
