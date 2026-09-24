@@ -35,8 +35,8 @@ export default function SignupPage() {
           <CardHeader>
             <CardTitle className="text-xl">Request received</CardTitle>
             <CardDescription>
-              Thanks — your organization signup is pending approval.
-              You&apos;ll be able to log in once a super-admin approves it.
+              Thanks — your organization signup is pending approval. You&apos;ll be able to log in
+              once a super-admin approves it.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -49,9 +49,7 @@ export default function SignupPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-xl">Sign up your organization</CardTitle>
-          <CardDescription>
-            Create an admin account for your school or college.
-          </CardDescription>
+          <CardDescription>Create an admin account for your school or college.</CardDescription>
         </CardHeader>
         <form action={formAction}>
           <CardContent className="flex flex-col gap-4">
@@ -73,13 +71,7 @@ export default function SignupPage() {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="adminEmail">Admin email</Label>
-              <Input
-                id="adminEmail"
-                name="adminEmail"
-                type="email"
-                required
-                autoComplete="email"
-              />
+              <Input id="adminEmail" name="adminEmail" type="email" required autoComplete="email" />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="adminPassword">Admin password</Label>

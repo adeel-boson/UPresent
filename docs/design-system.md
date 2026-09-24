@@ -55,11 +55,11 @@ Contrast was checked against WCAG 2.2's 1.4.3 (text) and 1.4.11 (non-text)
 Level AA success criteria, computed directly from the OKLCH values (see
 `references/design-system-foundations.md` §2 for the citations):
 
-| Pair | Ratio | Requirement | Passes |
-|---|---|---|---|
-| `primary` bg vs. white text | 5.03:1 | 4.5:1 (normal text) | Yes |
-| `primary` vs. light-mode `background` | 5.26:1 | 3:1 (non-text/UI) | Yes |
-| `primary` vs. dark-mode `background` | 3.77:1 | 3:1 (non-text/UI) | Yes |
+| Pair                                  | Ratio  | Requirement         | Passes |
+| ------------------------------------- | ------ | ------------------- | ------ |
+| `primary` bg vs. white text           | 5.03:1 | 4.5:1 (normal text) | Yes    |
+| `primary` vs. light-mode `background` | 5.26:1 | 3:1 (non-text/UI)   | Yes    |
+| `primary` vs. dark-mode `background`  | 3.77:1 | 3:1 (non-text/UI)   | Yes    |
 
 The same `blue-600` value is used in both light and dark mode — it clears
 AA in both, so there was no need for a separate dark-mode shade.

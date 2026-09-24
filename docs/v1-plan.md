@@ -29,28 +29,33 @@ There is no self-check-in and no offline mode in v1 — attendance is always pro
 ## Feature scope for v1
 
 **Organization lifecycle**
+
 - Self-serve signup (org name, institution type, admin email+password).
 - Signup sits pending until a super-admin approves it.
 - Approval synchronously provisions the Organization's isolated Postgres schema.
 - Email verification (via Resend) is required before an org-admin can act.
 
 **People & roles**
+
 - Org-admin invites hosts by email; hosts set their own password on accepting the invite.
 - Org-admin can self-assign the host role to take attendance directly.
 - Each host has a **host title** (e.g., "Teacher," "Professor," "Alumni Guest," "Presenter") drawn from a per-Organization-configurable list, pre-seeded based on institution type.
 
 **Groups, Sessions, and rosters**
+
 - Only org-admins create Groups.
 - A Group's Sessions are either created manually, one at a time, or generated from a simple recurring weekly schedule (days of week + time) — the org-admin picks which mode per Group.
 - No holiday/exception handling for recurring schedules in v1 — an admin manually cancels a generated Session if needed (see `docs/ideas/recurrence-holiday-calendar.md`, gitignored).
 - Members are added to a Group's roster via CSV bulk import or manual one-by-one entry.
 
 **Taking attendance**
+
 - A host marks each roster Member's status for a Session.
 - Statuses are drawn from a per-Organization-configurable list, defaulting to Present / Absent / Late / Excused.
 - Edits to an AttendanceRecord are allowed only within a bounded time window after the Session, and every edit is captured in an audit log (who, when, from what to what). See [ADR-0008](./adr/0008-attendance-edit-window-with-audit-log.md).
 
 **Reporting**
+
 - Per-student attendance percentage over a date range.
 - Per-group attendance summary.
 - CSV export.
@@ -69,16 +74,16 @@ These were discussed and deliberately deferred — not overlooked. Full detail i
 
 ## Tech stack
 
-| Concern | Choice | Why |
-|---|---|---|
-| App framework | Next.js (App Router), full-stack, one deployable | [ADR-0002](./adr/0002-nextjs-fullstack-on-vercel.md) |
-| Hosting | Vercel (not yet deployed — local dev for now) | [ADR-0002](./adr/0002-nextjs-fullstack-on-vercel.md) |
-| Database | Postgres, one schema per Organization (tenant) | [ADR-0001](./adr/0001-multi-tenant-schema-per-tenant-isolation.md) |
-| Local dev database | Docker Postgres | — |
-| ORM | Prisma | [ADR-0003](./adr/0003-prisma-orm-tenant-pattern-deferred.md) (schema-per-tenant implementation pattern deliberately left open) |
-| Auth | Auth.js, email + password with verification | [ADR-0004](./adr/0004-authjs-email-password.md) |
-| Transactional email | Resend | — |
-| Testing | TDD from the start | GitHub Actions CI deferred until later |
+| Concern             | Choice                                           | Why                                                                                                                            |
+| ------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| App framework       | Next.js (App Router), full-stack, one deployable | [ADR-0002](./adr/0002-nextjs-fullstack-on-vercel.md)                                                                           |
+| Hosting             | Vercel (not yet deployed — local dev for now)    | [ADR-0002](./adr/0002-nextjs-fullstack-on-vercel.md)                                                                           |
+| Database            | Postgres, one schema per Organization (tenant)   | [ADR-0001](./adr/0001-multi-tenant-schema-per-tenant-isolation.md)                                                             |
+| Local dev database  | Docker Postgres                                  | —                                                                                                                              |
+| ORM                 | Prisma                                           | [ADR-0003](./adr/0003-prisma-orm-tenant-pattern-deferred.md) (schema-per-tenant implementation pattern deliberately left open) |
+| Auth                | Auth.js, email + password with verification      | [ADR-0004](./adr/0004-authjs-email-password.md)                                                                                |
+| Transactional email | Resend                                           | —                                                                                                                              |
+| Testing             | TDD from the start                               | GitHub Actions CI deferred until later                                                                                         |
 
 ## Where to look next
 

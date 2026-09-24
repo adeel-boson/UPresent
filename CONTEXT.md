@@ -9,7 +9,7 @@ A tenant — one school, college, or (later) event organizer using the product. 
 _Avoid_: Tenant, Institution, Account (in the multi-tenancy/data-isolation sense, "tenant" is fine as an infra term, but "Organization" is the domain noun)
 
 **host title**:
-A per-`Organization`-configured label assigned to an individual `host` (e.g., "Teacher," "Professor," "Alumni Guest," "Presenter"). Titles vary *within* one `Organization` (a university may have both "Professor" and "Alumni Guest" hosts), so this lives on the `host`, not on the `Organization` as a single fixed value. At org creation, the `Organization`'s institution type seeds a sensible default title set, which the `org-admin` can edit afterward.
+A per-`Organization`-configured label assigned to an individual `host` (e.g., "Teacher," "Professor," "Alumni Guest," "Presenter"). Titles vary _within_ one `Organization` (a university may have both "Professor" and "Alumni Guest" hosts), so this lives on the `host`, not on the `Organization` as a single fixed value. At org creation, the `Organization`'s institution type seeds a sensible default title set, which the `org-admin` can edit afterward.
 _Avoid_: Role label, Display name (this is specifically the host's title, not to be confused with the `host`/`org-admin`/`super-admin` role itself)
 
 **Group**:

@@ -49,16 +49,16 @@ An attendance-tracking product for schools and colleges. See [`docs/v1-plan.md`]
 
 ## Scripts
 
-| Command | What it does |
-|---|---|
-| `npm run dev` | Start the Next.js dev server |
-| `npm run build` / `npm run start` | Production build / start |
-| `npm run lint` | ESLint |
-| `npm test` | Run the test suite once |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run db:migrate` | Create/apply Prisma migrations against the local database |
-| `npm run db:seed` | (Re-)seed the super-admin account |
-| `npm run db:studio` | Open Prisma Studio to browse the local database |
+| Command                           | What it does                                              |
+| --------------------------------- | --------------------------------------------------------- |
+| `npm run dev`                     | Start the Next.js dev server                              |
+| `npm run build` / `npm run start` | Production build / start                                  |
+| `npm run lint`                    | ESLint                                                    |
+| `npm test`                        | Run the test suite once                                   |
+| `npm run test:watch`              | Run tests in watch mode                                   |
+| `npm run db:migrate`              | Create/apply Prisma migrations against the local database |
+| `npm run db:seed`                 | (Re-)seed the super-admin account                         |
+| `npm run db:studio`               | Open Prisma Studio to browse the local database           |
 
 ## Stack
 

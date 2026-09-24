@@ -36,10 +36,7 @@ export const authConfig = {
           return null;
         }
 
-        const isValidPassword = await verifyPassword(
-          password,
-          user.hashedPassword,
-        );
+        const isValidPassword = await verifyPassword(password, user.hashedPassword);
         if (!isValidPassword) {
           return null;
         }

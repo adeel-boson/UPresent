@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { prismaSchemaProvisioner, type SchemaProvisioner } from "@/lib/organizations/schema-provisioner";
+import {
+  prismaSchemaProvisioner,
+  type SchemaProvisioner,
+} from "@/lib/organizations/schema-provisioner";
 
 export class OrganizationNotFoundError extends Error {
   constructor(organizationId: string) {
