@@ -1,16 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
-import { auth } from "@/lib/auth";
+import { requireRole } from "@/lib/auth/guards";
 import { approveOrganization } from "@/lib/organizations/approve";
 
-export async function approveSignup(organizationId: string): Promise<void> {
-  const session = await auth();
-  if (session?.user.role !== "SUPER_ADMIN") {
-    throw new Error("Forbidden");
-  }
+const organizationIdSchema = z.string().min(1);
 
-  await approveOrganization(organizationId);
+export async function approveSignup(organizationId: string): Promise<void> {
+  await requireRole("SUPER_ADMIN");
+
+  await approveOrganization(organizationIdSchema.parse(organizationId));
   revalidatePath("/admin/signups");
 }

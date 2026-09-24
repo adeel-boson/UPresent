@@ -1,5 +1,8 @@
 "use server";
 
+import { InstitutionType } from "@prisma/client";
+import { z } from "zod";
+
 import { EmailAlreadyInUseError, signUpOrganization } from "@/lib/organizations/signup";
 
 export type SignupState = {
@@ -7,24 +10,16 @@ export type SignupState = {
   success: boolean;
 };
 
-export async function signup(
-  _prevState: SignupState,
-  formData: FormData,
-): Promise<SignupState> {
-  const organizationName = formData.get("organizationName");
-  const institutionType = formData.get("institutionType");
-  const adminEmail = formData.get("adminEmail");
-  const adminPassword = formData.get("adminPassword");
+const signupSchema = z.object({
+  organizationName: z.string().trim().min(1),
+  institutionType: z.enum(InstitutionType),
+  adminEmail: z.string().trim().pipe(z.email()),
+  adminPassword: z.string().min(8),
+});
 
-  if (
-    typeof organizationName !== "string" ||
-    organizationName.trim().length === 0 ||
-    (institutionType !== "SCHOOL" && institutionType !== "COLLEGE") ||
-    typeof adminEmail !== "string" ||
-    adminEmail.trim().length === 0 ||
-    typeof adminPassword !== "string" ||
-    adminPassword.length < 8
-  ) {
+export async function signup(_prevState: SignupState, formData: FormData): Promise<SignupState> {
+  const parsed = signupSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
     return {
       error: "Please fill in all fields (password must be at least 8 characters).",
       success: false,
@@ -32,12 +27,7 @@ export async function signup(
   }
 
   try {
-    await signUpOrganization({
-      organizationName: organizationName.trim(),
-      institutionType,
-      adminEmail: adminEmail.trim(),
-      adminPassword,
-    });
+    await signUpOrganization(parsed.data);
   } catch (error) {
     if (error instanceof EmailAlreadyInUseError) {
       return { error: "That email is already in use.", success: false };

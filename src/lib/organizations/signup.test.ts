@@ -34,7 +34,7 @@ describe("signUpOrganization", () => {
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(mockTx.organization.create).toHaveBeenCalledTimes(1);
 
-    const createArgs = mockTx.organization.create.mock.calls[0][0];
+    const createArgs = mockTx.organization.create.mock.calls[0]?.[0];
     expect(createArgs.data.name).toBe("Springfield Elementary");
     expect(createArgs.data.institutionType).toBe("SCHOOL");
     expect(createArgs.data.schemaName).toMatch(/^org_[a-f0-9]{32}$/);
