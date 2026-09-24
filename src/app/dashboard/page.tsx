@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
+import Link from "next/link";
 
-import { auth, signOut } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,34 +10,34 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
+import { signOut } from "@/lib/auth";
+import { requireUser } from "@/lib/auth/guards";
 
 export default async function DashboardPage() {
-  const session = await auth();
-
-  if (!session?.user) {
-    redirect("/login");
-  }
+  const user = await requireUser();
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-xl">Dashboard</CardTitle>
+          <CardTitle className="text-xl">
+            <h1>Dashboard</h1>
+          </CardTitle>
           <CardDescription>
-            Logged in as <strong className="text-foreground">{session.user.email}</strong>
+            Logged in as <strong className="text-foreground">{user.email}</strong>
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div>
-            <Badge variant="secondary">{session.user.role}</Badge>
+            <Badge variant="secondary">{user.role}</Badge>
           </div>
-          {session.user.role === "SUPER_ADMIN" ? (
-            <a
+          {user.role === "SUPER_ADMIN" ? (
+            <Link
               href="/admin/signups"
               className="text-sm font-medium text-primary underline-offset-4 hover:underline"
             >
               Pending signup requests
-            </a>
+            </Link>
           ) : null}
         </CardContent>
         <CardFooter>
@@ -49,7 +48,7 @@ export default async function DashboardPage() {
             }}
             className="w-full"
           >
-            <Button type="submit" variant="outline" className="w-full">
+            <Button type="submit" variant="outline" size="lg" className="h-11 w-full">
               Log out
             </Button>
           </form>

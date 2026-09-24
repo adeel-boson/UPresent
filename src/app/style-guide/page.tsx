@@ -19,17 +19,12 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="text-lg font-heading font-semibold">{title}</h2>
+      <h2 className="font-heading text-lg font-semibold">{title}</h2>
       {children}
     </section>
   );
@@ -38,9 +33,7 @@ function Section({
 function Swatch({ name, className }: { name: string; className: string }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <div
-        className={`h-14 w-full rounded-lg ring-1 ring-foreground/10 ${className}`}
-      />
+      <div className={cn("h-14 w-full rounded-lg ring-1 ring-foreground/10", className)} />
       <span className="text-xs text-muted-foreground">{name}</span>
     </div>
   );
@@ -50,15 +43,10 @@ export default function StyleGuidePage() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-12 px-4 py-10 sm:px-6">
       <header className="flex flex-col gap-2">
-        <h1 className="font-heading text-2xl font-semibold">
-          UPresent Design System
-        </h1>
+        <h1 className="font-heading text-2xl font-semibold">UPresent Design System</h1>
         <p className="text-sm text-muted-foreground">
-          Internal reference for tokens and core components. Not linked from
-          product navigation — see{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">
-            docs/design-system.md
-          </code>{" "}
+          Internal reference for tokens and core components. Not linked from product navigation —
+          see <code className="rounded bg-muted px-1 py-0.5 text-xs">docs/design-system.md</code>{" "}
           for the full write-up.
         </p>
       </header>
@@ -78,16 +66,10 @@ export default function StyleGuidePage() {
 
       <Section title="Typography">
         <div className="flex flex-col gap-3">
-          <p className="font-heading text-2xl font-semibold">
-            Heading 2xl — Geist Sans
-          </p>
-          <p className="font-heading text-lg font-medium">
-            Heading lg — section titles
-          </p>
+          <p className="font-heading text-2xl font-semibold">Heading 2xl — Geist Sans</p>
+          <p className="font-heading text-lg font-medium">Heading lg — section titles</p>
           <p className="text-base">Body base — default paragraph text</p>
-          <p className="text-sm text-muted-foreground">
-            Body sm muted — helper and secondary text
-          </p>
+          <p className="text-sm text-muted-foreground">Body sm muted — helper and secondary text</p>
           <p className="font-mono text-sm">Mono — Geist Mono, for codes</p>
         </div>
       </Section>
@@ -105,6 +87,9 @@ export default function StyleGuidePage() {
           <Button size="sm">Small</Button>
           <Button size="default">Default</Button>
           <Button size="lg">Large</Button>
+          <Button size="lg" className="h-11">
+            Phone tap target (44px)
+          </Button>
         </div>
       </Section>
 
@@ -113,8 +98,8 @@ export default function StyleGuidePage() {
           <CardHeader>
             <CardTitle>Example form</CardTitle>
             <CardDescription>
-              Single-column layout, labels above fields, inline validation —
-              per NN/g form-usability guidance.
+              Single-column layout, labels above fields, inline validation — per NN/g form-usability
+              guidance.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -124,13 +109,13 @@ export default function StyleGuidePage() {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="sg-role">Role</Label>
-              <Select>
+              <Select items={{ teacher: "Teacher", "org-admin": "Org-admin", student: "Student" }}>
                 <SelectTrigger id="sg-role" className="w-full">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="host">Host</SelectItem>
-                  <SelectItem value="org-admin">Org admin</SelectItem>
+                  <SelectItem value="teacher">Teacher</SelectItem>
+                  <SelectItem value="org-admin">Org-admin</SelectItem>
                   <SelectItem value="student">Student</SelectItem>
                 </SelectContent>
               </Select>

@@ -217,6 +217,7 @@ The W3C quick-reference index for all criteria (filterable by level/topic) is at
 Source: https://www.nngroup.com/articles/web-form-design/
 
 Concrete recommendations:
+
 - Minimize the number of fields; the article cites an example of a form "reduced ... from 6
   fields down to only 2 fields," which directly improved conversion.
 - Label placement: "Labels should be close to the fields they describe (immediately above the
@@ -241,10 +242,11 @@ Source: https://www.nngroup.com/articles/mobile-first-not-mobile-only/
 
 Concrete recommendations (general responsive-design guidance, not form-specific, but directly
 relevant to a mobile-first component system):
+
 - Don't blindly transplant mobile UI conventions (e.g. hamburger menus, hidden navigation,
   search icons in place of visible search boxes) onto desktop layouts — doing so degrades
   desktop usability (their study found navigation elements were used far more on the mobile
-  version of a site than the desktop version of the *same* site — 77% vs 54% — because the
+  version of a site than the desktop version of the _same_ site — 77% vs 54% — because the
   desktop navigation had been degraded by mobile-first porting).
 - "Different devices have different capabilities of interaction and different screen sizes,"
   which argues for platform-adapted layouts rather than one identical UI stretched across
@@ -259,6 +261,7 @@ relevant to a mobile-first component system):
 Source: https://www.nngroup.com/articles/errors-forms-design-guidelines/
 
 Concrete recommendations:
+
 - Validation timing: "Ideally, all validation should be inline; that is, as soon as the user
   has finished filling in a field, an indicator should appear nearby if the field contains an
   error" — but "avoid showing an error until the user has finished with the field and moved to
@@ -275,6 +278,7 @@ Concrete recommendations:
 Source: https://www.nngroup.com/articles/error-message-guidelines/
 
 Concrete recommendations:
+
 - Visibility: "Display the error message close to the error's source"; use bold, high-contrast
   styling with icons; match message severity to impact (banners for minor issues, modals for
   critical errors); avoid showing errors prematurely.
@@ -328,19 +332,19 @@ Source: [Accessibility designing — Material Design 3](https://m3.material.io/f
 
 ### Numeric comparison against WCAG 2.2 SC 2.5.8
 
-| Source | Minimum target size | Unit |
-|---|---|---|
-| WCAG 2.2 SC 2.5.8 Target Size (Minimum), Level AA | 24 × 24 | CSS px |
-| Apple HIG (iOS/iPadOS/macOS/watchOS/tvOS) | 44 × 44 | pt |
-| Apple HIG (visionOS) | 60 × 60 | pt |
-| Material Design 3 (touch target) | 48 × 48 | dp |
-| Material Design 3 (pointer target) | 44 × 44 | dp |
+| Source                                            | Minimum target size | Unit   |
+| ------------------------------------------------- | ------------------- | ------ |
+| WCAG 2.2 SC 2.5.8 Target Size (Minimum), Level AA | 24 × 24             | CSS px |
+| Apple HIG (iOS/iPadOS/macOS/watchOS/tvOS)         | 44 × 44             | pt     |
+| Apple HIG (visionOS)                              | 60 × 60             | pt     |
+| Material Design 3 (touch target)                  | 48 × 48             | dp     |
+| Material Design 3 (pointer target)                | 44 × 44             | dp     |
 
 At a standard 1x/baseline density, CSS px, iOS pt, and Android/Material dp are all
 approximately 1:1 as abstract units (each is a density-independent unit designed so 1 unit ≈
 1/96–1/160in depending on platform convention). On that basis, both Apple's 44×44 and
 Material's 48×48 platform minimums are numerically larger than the WCAG 2.2 24×24 CSS px
-*minimum* (WCAG 2.2 states 24×24 CSS px as a pass/fail floor for conformance, not as a
+_minimum_ (WCAG 2.2 states 24×24 CSS px as a pass/fail floor for conformance, not as a
 recommended/ideal size — the spacing exception in SC 2.5.8 also allows smaller-than-24px
 targets if they are spaced so a 24px circle centered on each does not intersect another
 target).
@@ -380,6 +384,7 @@ target).
 ## References
 
 ### shadcn/ui
+
 - https://ui.shadcn.com/docs/installation/next
 - https://ui.shadcn.com/docs/installation
 - https://ui.shadcn.com/docs/theming
@@ -393,6 +398,7 @@ target).
 - https://ui.shadcn.com/colors
 
 ### WCAG 2.2 (W3C)
+
 - https://www.w3.org/WAI/WCAG22/quickref/
 - https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html
 - https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html
@@ -401,12 +407,14 @@ target).
 - https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html
 
 ### Nielsen Norman Group
+
 - https://www.nngroup.com/articles/web-form-design/
 - https://www.nngroup.com/articles/mobile-first-not-mobile-only/
 - https://www.nngroup.com/articles/errors-forms-design-guidelines/
 - https://www.nngroup.com/articles/error-message-guidelines/
 
 ### Touch target size
+
 - https://developer.apple.com/design/human-interface-guidelines/buttons
 - https://developer.apple.com/design/human-interface-guidelines/layout
 - https://m3.material.io/foundations/designing/structure

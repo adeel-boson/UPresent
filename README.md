@@ -15,10 +15,16 @@ An attendance-tracking product for schools and colleges. See [`docs/v1-plan.md`]
    npm install
    ```
 
-2. Copy the example environment file and adjust values if needed (the defaults work out of the box with the `docker-compose.yml` below):
+2. Copy the example environment file (the database and seed defaults work out of the box with the `docker-compose.yml` below):
 
    ```bash
    cp .env.example .env
+   ```
+
+   Then generate `AUTH_SECRET`. Login fails with `MissingSecret` while it is empty. This writes it to `.env.local`, which Next.js loads alongside `.env`:
+
+   ```bash
+   npx auth secret
    ```
 
 3. Start local Postgres:
@@ -49,19 +55,22 @@ An attendance-tracking product for schools and colleges. See [`docs/v1-plan.md`]
 
 ## Scripts
 
-| Command | What it does |
-|---|---|
-| `npm run dev` | Start the Next.js dev server |
-| `npm run build` / `npm run start` | Production build / start |
-| `npm run lint` | ESLint |
-| `npm test` | Run the test suite once |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run db:migrate` | Create/apply Prisma migrations against the local database |
-| `npm run db:seed` | (Re-)seed the super-admin account |
-| `npm run db:studio` | Open Prisma Studio to browse the local database |
+| Command                           | What it does                                              |
+| --------------------------------- | --------------------------------------------------------- |
+| `npm run dev`                     | Start the Next.js dev server                              |
+| `npm run build` / `npm run start` | Production build / start                                  |
+| `npm run check`                   | Typecheck, lint, format check and tests (the merge gate)  |
+| `npm run typecheck`               | Generate route types, then `tsc --noEmit`                 |
+| `npm run lint`                    | ESLint                                                    |
+| `npm run format`                  | Format the repo with Prettier                             |
+| `npm test`                        | Run the test suite once                                   |
+| `npm run test:watch`              | Run tests in watch mode                                   |
+| `npm run db:migrate`              | Create/apply Prisma migrations against the local database |
+| `npm run db:seed`                 | (Re-)seed the super-admin account                         |
+| `npm run db:studio`               | Open Prisma Studio to browse the local database           |
 
 ## Stack
 
 Next.js (App Router, TypeScript) · Prisma · Postgres (Docker locally) · Auth.js (Credentials provider) · Vitest. See [`docs/v1-plan.md`](docs/v1-plan.md#tech-stack) for rationale and the linked ADRs.
 
-This ticket ([#1](https://github.com/adeel-boson/UPresent/issues/1)) is foundation only: a working local dev loop and a super-admin login. No Organization/Group/roster modeling yet — that starts in [#2](https://github.com/adeel-boson/UPresent/issues/2).
+How code here is written, and what "done" means: [`CODING_STANDARDS.md`](CODING_STANDARDS.md).

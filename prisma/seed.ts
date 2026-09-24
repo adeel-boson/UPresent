@@ -1,11 +1,12 @@
 import { PrismaClient } from "@prisma/client";
 
-import { hashPassword } from "../src/lib/auth/password";
+import { hashPassword } from "@/lib/auth/password";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = process.env.SEED_SUPER_ADMIN_EMAIL;
+  // Lowercased like signup and login, which match emails case-insensitively.
+  const email = process.env.SEED_SUPER_ADMIN_EMAIL?.trim().toLowerCase();
   const password = process.env.SEED_SUPER_ADMIN_PASSWORD;
 
   if (!email || !password) {

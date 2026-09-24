@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { mockTx } = vi.hoisted(() => ({
@@ -13,8 +14,20 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+import { verifyPassword } from "@/lib/auth/password";
 import { prisma } from "@/lib/prisma";
-import { EmailAlreadyInUseError, signUpOrganization } from "@/lib/organizations/signup";
+import {
+  EmailAlreadyInUseError,
+  signUpOrganization,
+  type SignUpOrganizationInput,
+} from "@/lib/organizations/signup";
+
+const signupInput: SignUpOrganizationInput = {
+  organizationName: "Springfield Elementary",
+  institutionType: "SCHOOL",
+  orgAdminEmail: "admin@springfield.example",
+  orgAdminPassword: "correct horse battery staple",
+};
 
 describe("signUpOrganization", () => {
   beforeEach(() => {
@@ -23,38 +36,49 @@ describe("signUpOrganization", () => {
     mockTx.organization.create.mockResolvedValue({});
   });
 
-  it("creates a pending organization with a hashed-password admin user", async () => {
-    await signUpOrganization({
-      organizationName: "Springfield Elementary",
-      institutionType: "SCHOOL",
-      adminEmail: "admin@springfield.example",
-      adminPassword: "correct horse battery staple",
-    });
+  it("creates a pending organization with a hashed-password org-admin user", async () => {
+    await signUpOrganization(signupInput);
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(mockTx.organization.create).toHaveBeenCalledTimes(1);
 
-    const createArgs = mockTx.organization.create.mock.calls[0][0];
+    const createArgs = mockTx.organization.create.mock.calls[0]?.[0];
     expect(createArgs.data.name).toBe("Springfield Elementary");
     expect(createArgs.data.institutionType).toBe("SCHOOL");
     expect(createArgs.data.schemaName).toMatch(/^org_[a-f0-9]{32}$/);
     expect(createArgs.data.users.create.email).toBe("admin@springfield.example");
     expect(createArgs.data.users.create.role).toBe("ORG_ADMIN");
-    expect(createArgs.data.users.create.hashedPassword).not.toBe("correct horse battery staple");
+    await expect(
+      verifyPassword("correct horse battery staple", createArgs.data.users.create.hashedPassword),
+    ).resolves.toBe(true);
   });
 
-  it("throws when the admin email is already in use", async () => {
+  it("stores the org-admin email lowercased", async () => {
+    await signUpOrganization({ ...signupInput, orgAdminEmail: " Admin@Springfield.Example " });
+
+    const createArgs = mockTx.organization.create.mock.calls[0]?.[0];
+    expect(createArgs.data.users.create.email).toBe("admin@springfield.example");
+  });
+
+  it("throws when the org-admin email is already in use", async () => {
     mockTx.user.findUnique.mockResolvedValue({ id: "existing-user" });
 
-    await expect(
-      signUpOrganization({
-        organizationName: "Springfield Elementary",
-        institutionType: "SCHOOL",
-        adminEmail: "admin@springfield.example",
-        adminPassword: "correct horse battery staple",
-      }),
-    ).rejects.toBeInstanceOf(EmailAlreadyInUseError);
+    await expect(signUpOrganization(signupInput)).rejects.toBeInstanceOf(EmailAlreadyInUseError);
 
     expect(mockTx.organization.create).not.toHaveBeenCalled();
+  });
+
+  it("throws EmailAlreadyInUseError when a concurrent signup wins the unique index", async () => {
+    mockTx.organization.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError(
+        "Unique constraint failed on the fields: (`email`)",
+        {
+          code: "P2002",
+          clientVersion: "test",
+        },
+      ),
+    );
+
+    await expect(signUpOrganization(signupInput)).rejects.toBeInstanceOf(EmailAlreadyInUseError);
   });
 });
