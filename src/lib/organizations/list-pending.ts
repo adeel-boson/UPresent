@@ -6,7 +6,7 @@ export type PendingOrganization = {
   id: string;
   name: string;
   institutionType: InstitutionType;
-  adminEmail: string | null;
+  orgAdminEmail: string | null;
 };
 
 // Oldest first, so the super-admin works through signups in arrival order.
@@ -26,6 +26,6 @@ export async function listPendingOrganizations(): Promise<PendingOrganization[]>
 
   return organizations.map(({ users, ...organization }) => ({
     ...organization,
-    adminEmail: users[0]?.email ?? null,
+    orgAdminEmail: users[0]?.email ?? null,
   }));
 }

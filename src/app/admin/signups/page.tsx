@@ -1,8 +1,9 @@
+import { ApproveButton } from "@/app/admin/signups/_components/approve-button";
 import { approveSignup } from "@/app/admin/signups/actions";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/guards";
+import { INSTITUTION_TYPE_LABELS } from "@/lib/organizations/institution-type";
 import { listPendingOrganizations } from "@/lib/organizations/list-pending";
 
 export default async function PendingSignupsPage() {
@@ -27,19 +28,18 @@ export default async function PendingSignupsPage() {
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-2">
-                    <CardTitle>{organization.name}</CardTitle>
-                    <Badge variant="secondary">{organization.institutionType}</Badge>
+                    <CardTitle>
+                      <h2>{organization.name}</h2>
+                    </CardTitle>
+                    <Badge variant="secondary">
+                      {INSTITUTION_TYPE_LABELS[organization.institutionType]}
+                    </Badge>
                   </div>
-                  <CardDescription>Admin: {organization.adminEmail ?? "—"}</CardDescription>
+                  <CardDescription>Org-admin: {organization.orgAdminEmail ?? "—"}</CardDescription>
                 </CardHeader>
                 <CardFooter>
-                  <form
-                    action={async () => {
-                      "use server";
-                      await approveSignup(organization.id);
-                    }}
-                  >
-                    <Button type="submit">Approve</Button>
+                  <form action={approveSignup.bind(null, organization.id)}>
+                    <ApproveButton />
                   </form>
                 </CardFooter>
               </Card>
