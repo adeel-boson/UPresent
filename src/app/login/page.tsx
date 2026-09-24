@@ -26,7 +26,9 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-xl">Log in</CardTitle>
+          <CardTitle className="text-xl">
+            <h1>Log in</h1>
+          </CardTitle>
           <CardDescription>Enter your email and password to access your account.</CardDescription>
         </CardHeader>
         <form action={formAction}>
@@ -52,7 +54,7 @@ export default function LoginPage() {
             ) : null}
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" disabled={pending} className="w-full">
+            <Button type="submit" size="lg" disabled={pending} className="h-11 w-full">
               {pending ? "Logging in…" : "Log in"}
             </Button>
             <p className="text-center text-sm text-muted-foreground">

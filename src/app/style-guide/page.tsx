@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -32,7 +33,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Swatch({ name, className }: { name: string; className: string }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <div className={`h-14 w-full rounded-lg ring-1 ring-foreground/10 ${className}`} />
+      <div className={cn("h-14 w-full rounded-lg ring-1 ring-foreground/10", className)} />
       <span className="text-xs text-muted-foreground">{name}</span>
     </div>
   );
@@ -86,6 +87,9 @@ export default function StyleGuidePage() {
           <Button size="sm">Small</Button>
           <Button size="default">Default</Button>
           <Button size="lg">Large</Button>
+          <Button size="lg" className="h-11">
+            Phone tap target (44px)
+          </Button>
         </div>
       </Section>
 
@@ -110,8 +114,8 @@ export default function StyleGuidePage() {
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="host">Host</SelectItem>
-                  <SelectItem value="org-admin">Org admin</SelectItem>
+                  <SelectItem value="teacher">Teacher</SelectItem>
+                  <SelectItem value="org-admin">Org-admin</SelectItem>
                   <SelectItem value="student">Student</SelectItem>
                 </SelectContent>
               </Select>

@@ -20,7 +20,9 @@ export default async function DashboardPage() {
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-xl">Dashboard</CardTitle>
+          <CardTitle className="text-xl">
+            <h1>Dashboard</h1>
+          </CardTitle>
           <CardDescription>
             Logged in as <strong className="text-foreground">{user.email}</strong>
           </CardDescription>
@@ -46,7 +48,7 @@ export default async function DashboardPage() {
             }}
             className="w-full"
           >
-            <Button type="submit" variant="outline" className="w-full">
+            <Button type="submit" variant="outline" size="lg" className="h-11 w-full">
               Log out
             </Button>
           </form>

@@ -2,29 +2,6 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-html {
-  height: 100%;
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: var(--font-sans);
@@ -111,6 +88,8 @@ a {
     color-scheme: dark;
   }
 
+  /* blue-400, not the light-mode blue-600: blue-600 is only 3.4:1 as text on
+     a dark card (AA needs 4.5:1). Dark foreground keeps buttons at 7.5:1. */
   :root {
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
@@ -118,8 +97,8 @@ a {
     --card-foreground: oklch(0.985 0 0);
     --popover: oklch(0.205 0 0);
     --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.546 0.245 262.881);
-    --primary-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.707 0.165 254.624);
+    --primary-foreground: oklch(0.145 0 0);
     --secondary: oklch(0.269 0 0);
     --secondary-foreground: oklch(0.985 0 0);
     --muted: oklch(0.269 0 0);
@@ -129,7 +108,7 @@ a {
     --destructive: oklch(0.704 0.191 22.216);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.546 0.245 262.881);
+    --ring: oklch(0.707 0.165 254.624);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
@@ -137,23 +116,31 @@ a {
     --chart-5: oklch(0.269 0 0);
     --sidebar: oklch(0.205 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.546 0.245 262.881);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.707 0.165 254.624);
+    --sidebar-primary-foreground: oklch(0.145 0 0);
     --sidebar-accent: oklch(0.269 0 0);
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.546 0.245 262.881);
+    --sidebar-ring: oklch(0.707 0.165 254.624);
   }
 }
 
+/* In a layer so Tailwind utilities always win — unlayered rules beat every
+   utility regardless of specificity (see commit 46c48ee). Link color and
+   decoration already come from Tailwind preflight. */
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
-    @apply font-sans;
+    @apply h-full font-sans;
+  }
+  html,
+  body {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+  body {
+    @apply flex min-h-full flex-col bg-background text-foreground antialiased;
   }
 }

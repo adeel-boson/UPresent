@@ -1,8 +1,9 @@
 # UPresent Design System
 
-Foundational tokens and components for UPresent's UI. Established as its own
-piece of work ([issue #13](https://github.com/adeel-boson/UPresent/issues/13)),
-separate from migrating the existing pages onto it.
+Foundational tokens and components for UPresent's UI. Established in
+[issue #13](https://github.com/adeel-boson/UPresent/issues/13); the existing
+pages (login, signup, dashboard, admin/signups) were migrated onto it in the
+same PR.
 
 Live reference: run `npm run dev` and visit `/style-guide`
 ([src/app/style-guide/page.tsx](../src/app/style-guide/page.tsx)).
@@ -17,7 +18,6 @@ Group, Apple HIG, Material Design).
 This pass establishes the design system itself: tokens, component library,
 interaction/accessibility conventions. It does **not** cover:
 
-- Re-skinning the existing pages (login, signup, dashboard, admin/signups)
 - Feature-specific UX flows (e.g. the step-by-step attendance-marking flow)
 - Per-tenant branding/white-labeling
 
@@ -42,9 +42,10 @@ Those are deliberately separate follow-up work.
 ## Color
 
 Base palette is `neutral` — a pure grayscale (zero chroma) scale used for
-background, text, borders, and surfaces. One accent color, `blue-600`
-(`oklch(0.546 0.245 262.881)`, Tailwind's own value), is layered on top for
-`--primary`, `--ring`, and `--sidebar-primary`.
+background, text, borders, and surfaces. One accent hue, blue, is layered on
+top for `--primary`, `--ring`, and `--sidebar-primary`: `blue-600`
+(`oklch(0.546 0.245 262.881)`) in light mode and `blue-400`
+(`oklch(0.707 0.165 254.624)`) in dark mode, both Tailwind's own values.
 
 Blue was chosen over green/amber to avoid colliding with the semantic
 status colors (present/absent/late) that attendance-tracking screens will
@@ -53,16 +54,44 @@ work.
 
 Contrast was checked against WCAG 2.2's 1.4.3 (text) and 1.4.11 (non-text)
 Level AA success criteria, computed directly from the OKLCH values (see
-`references/design-system-foundations.md` §2 for the citations):
+`docs/research/design-system-foundations.md` §2 for the citations):
 
-| Pair                                  | Ratio  | Requirement         | Passes |
-| ------------------------------------- | ------ | ------------------- | ------ |
-| `primary` bg vs. white text           | 5.03:1 | 4.5:1 (normal text) | Yes    |
-| `primary` vs. light-mode `background` | 5.26:1 | 3:1 (non-text/UI)   | Yes    |
-| `primary` vs. dark-mode `background`  | 3.77:1 | 3:1 (non-text/UI)   | Yes    |
+| Pair                                              | Ratio  | Requirement         | Passes |
+| ------------------------------------------------- | ------ | ------------------- | ------ |
+| Light: `primary-foreground` on `primary` (button) | 5.03:1 | 4.5:1 (normal text) | Yes    |
+| Light: `primary` text on `background` (link)      | 5.26:1 | 4.5:1 (normal text) | Yes    |
+| Dark: `primary-foreground` on `primary` (button)  | 7.51:1 | 4.5:1 (normal text) | Yes    |
+| Dark: `primary` text on `background` (link)       | 7.51:1 | 4.5:1 (normal text) | Yes    |
+| Dark: `primary` text on `card` (link in a card)   | 6.79:1 | 4.5:1 (normal text) | Yes    |
+| Light: `muted-foreground` on `background`         | 4.73:1 | 4.5:1 (normal text) | Yes    |
+| Light: `destructive` on `background`              | 4.76:1 | 4.5:1 (normal text) | Yes    |
 
-The same `blue-600` value is used in both light and dark mode — it clears
-AA in both, so there was no need for a separate dark-mode shade.
+`primary` is used as link text as well as a fill, so every pair is held to
+the 4.5:1 text threshold, not the 3:1 non-text one. `blue-600` is only
+3.4:1 on the dark `card`, which is why dark mode switches to `blue-400` with
+a dark `primary-foreground`.
+
+Known gap: shadcn's default `--input` border (`neutral-200`) is 1.26:1
+against white. Fields here are always paired with a visible `<Label>`
+above them, but if a design relies on the border alone to identify a field,
+raise `--input` to meet SC 1.4.11's 3:1.
+
+## Type scale and spacing
+
+These are Tailwind v4's default scales, adopted as-is rather than redefined,
+so every Tailwind and shadcn class means what its docs say.
+
+- **Type scale** (`text-*`): `text-2xl` page headings, `text-xl` card
+  headings on single-card pages, `text-lg` section headings, `text-base` body,
+  `text-sm` form controls, helper and secondary text, `text-xs` captions.
+  Headings use `font-heading` (Geist Sans) at `font-semibold` or
+  `font-medium`. Body text never goes below `text-sm` (14px).
+- **Spacing** (`p-*`, `gap-*`, …): the 4px-based `--spacing` scale. Use
+  `gap-1.5` between a label and its field, `gap-4` between fields and
+  between cards, `gap-6` between page sections, and `px-4` page gutters on
+  phones (`sm:px-6` above).
+- **Radius**: `--radius` (0.625rem) and the derived `rounded-*` steps in
+  `globals.css`.
 
 ## Dark mode
 
@@ -88,9 +117,9 @@ shadcn's default interactive sizes (`Button`/`Input`/`Select` default height:
 Apple HIG's 44×44pt and Material Design 3's 48×48dp touch-target guidance.
 Those defaults were left as-is (not forked) to stay compatible with future
 `shadcn add`/upgrade runs. Instead, for primary mobile tap actions — e.g. a
-"Mark present" button — use `size="lg"` at minimum and consider an explicit
-`h-11`/`h-12` (44–48px) override; this should be settled per-flow when the
-attendance-marking UX itself is designed.
+"Mark present" button — use `size="lg"` plus an explicit `h-11` (44px) or
+`h-12` (48px). `size="lg"` alone is `h-9` (36px), which is not enough. The
+login, signup and approval buttons already use `size="lg" className="h-11"`.
 
 ## Accessibility target
 
@@ -104,8 +133,8 @@ WCAG 2.2 Level AA. Concretely, from the research doc:
 ## Components installed
 
 `button`, `input`, `label`, `textarea`, `select`, `card`, `alert`, `badge` —
-the set the existing five pages (login, signup, dashboard, admin/signups)
-will need once they're migrated. Add more with `npx shadcn@latest add
+the set the existing four pages (login, signup, dashboard, admin/signups)
+use. Add more with `npx shadcn@latest add
 <name>`; check `/style-guide` after adding to confirm it picks up the theme
 correctly.
 
@@ -114,4 +143,3 @@ correctly.
 - Semantic status colors (present/absent/late) — feature-flow work
 - Per-tenant branding/white-labeling
 - Manual dark-mode toggle
-- Exact mobile touch-target sizing per component (guidance above, not fixed classes)
