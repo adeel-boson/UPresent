@@ -121,6 +121,12 @@ Those defaults were left as-is (not forked) to stay compatible with future
 `h-12` (48px). `size="lg"` alone is `h-9` (36px), which is not enough. The
 login, signup and approval buttons already use `size="lg" className="h-11"`.
 
+## Component notes
+
+- **Select**: pass `items` (a value → label map) to `<Select>`. Without it,
+  the Base UI trigger shows the raw value (`SCHOOL`) instead of its label
+  once something is picked.
+
 ## Accessibility target
 
 WCAG 2.2 Level AA. Concretely, from the research doc:

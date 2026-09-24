@@ -60,7 +60,9 @@ export default function SignupPage() {
             Create the org-admin account for your school or college.
           </CardDescription>
         </CardHeader>
-        <form action={formAction}>
+        {/* Remount when the returned fields change: Base UI inputs read
+            defaultValue only on mount, so this is how they pick it up. */}
+        <form key={JSON.stringify(fields ?? null)} action={formAction}>
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="organizationName">Organization name</Label>
@@ -76,6 +78,7 @@ export default function SignupPage() {
               <Label htmlFor="institutionType">Institution type</Label>
               <Select
                 name="institutionType"
+                items={INSTITUTION_TYPE_LABELS}
                 required
                 defaultValue={fields?.institutionType || null}
               >

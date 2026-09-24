@@ -109,7 +109,7 @@ export default function StyleGuidePage() {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="sg-role">Role</Label>
-              <Select>
+              <Select items={{ teacher: "Teacher", "org-admin": "Org-admin", student: "Student" }}>
                 <SelectTrigger id="sg-role" className="w-full">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
