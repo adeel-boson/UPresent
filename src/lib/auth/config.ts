@@ -1,8 +1,13 @@
 import Credentials from "next-auth/providers/credentials";
 import type { NextAuthConfig } from "next-auth";
+import { z } from "zod";
 
-import { prisma } from "@/lib/prisma";
-import { verifyPassword } from "@/lib/auth/password";
+import { authenticateUser } from "@/lib/auth/authenticate";
+
+const credentialsSchema = z.object({
+  email: z.string().min(1),
+  password: z.string().min(1),
+});
 
 export const authConfig = {
   // Auth.js won't trust the request's Host header in production unless told
@@ -25,23 +30,11 @@ export const authConfig = {
         password: { label: "Password", type: "password" },
       },
       authorize: async (credentials) => {
-        const email = credentials?.email;
-        const password = credentials?.password;
-        if (typeof email !== "string" || typeof password !== "string") {
+        const parsed = credentialsSchema.safeParse(credentials);
+        if (!parsed.success) {
           return null;
         }
-
-        const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) {
-          return null;
-        }
-
-        const isValidPassword = await verifyPassword(password, user.hashedPassword);
-        if (!isValidPassword) {
-          return null;
-        }
-
-        return { id: user.id, email: user.email, role: user.role };
+        return authenticateUser(parsed.data);
       },
     }),
   ],
