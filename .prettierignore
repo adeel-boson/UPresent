@@ -1,0 +1,18 @@
+# Generated or vendored — formatted by their own tools.
+.next/
+node_modules/
+package-lock.json
+prisma/migrations/
+next-env.d.ts
+
+# shadcn/ui output: kept byte-identical to the CLI so `shadcn add --overwrite`
+# diffs show only upstream changes. See CODING_STANDARDS.md.
+src/components/ui/
+
+# Agent skills are synced from mattpocock/skills (skills-lock.json).
+.agents/
+.claude/skills/
+skills-lock.json
+
+# Other agents' git worktrees — separate checkouts, not this tree's files.
+.claude/worktrees/
