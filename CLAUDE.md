@@ -11,3 +11,7 @@ Default five canonical labels (`needs-triage`, `needs-info`, `ready-for-agent`, 
 ### Domain docs
 
 Single-context (`CONTEXT.md` + `docs/adr/` at the repo root). See `docs/agents/domain.md`.
+
+### Branch naming
+
+`<type>/issue-<no>-<a-few-word-description>`, where `<type>` is one of `feature`, `fix`, `hotfix`, `Improvement`, `Chore`. Example: `feature/issue-1-project-scaffold-local-dev`.
