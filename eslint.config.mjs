@@ -42,6 +42,14 @@ const eslintConfig = defineConfig([
               message:
                 "Query through a domain module in src/lib/<domain>/ instead (CODING_STANDARDS.md § Layers).",
             },
+            {
+              // Enums and types from @prisma/client stay importable; only a
+              // second client (and with it direct queries) is banned.
+              name: "@prisma/client",
+              importNames: ["PrismaClient"],
+              message:
+                "Query through a domain module in src/lib/<domain>/ instead (CODING_STANDARDS.md § Layers).",
+            },
           ],
           patterns: [noParentRelativeImports],
         },

@@ -22,18 +22,18 @@ Run `npm run format` to fix formatting and `npx eslint --fix` to fix auto-fixabl
 
 ### Enforced by tooling — don't re-check by hand
 
-| Rule                                                       | Enforced by                                   |
-| ---------------------------------------------------------- | --------------------------------------------- |
-| Formatting, Tailwind class order                           | Prettier (`.prettierrc.json`)                 |
-| LF line endings                                            | `.gitattributes`                              |
-| `strict` + `noUncheckedIndexedAccess`                      | `tsconfig.json`                               |
-| Internal links and redirects point at real routes          | `typedRoutes` + `npm run typecheck`           |
-| `import type` for type-only imports                        | ESLint `consistent-type-imports`              |
-| Import grouping (external → `@/` → relative)               | ESLint `import/order`                         |
-| No `../` imports; use `@/`                                 | ESLint `no-restricted-imports`                |
-| `src/app` and `src/components` never import `@/lib/prisma` | ESLint `no-restricted-imports`                |
-| Prisma never reaches a client bundle                       | `import "server-only"` in `src/lib/prisma.ts` |
-| React hooks rules, Next.js rules, a11y basics              | `eslint-config-next`                          |
+| Rule                                                                         | Enforced by                                   |
+| ---------------------------------------------------------------------------- | --------------------------------------------- |
+| Formatting, Tailwind class order                                             | Prettier (`.prettierrc.json`)                 |
+| LF line endings                                                              | `.gitattributes`                              |
+| `strict` + `noUncheckedIndexedAccess`                                        | `tsconfig.json`                               |
+| Internal links and redirects point at real routes                            | `typedRoutes` + `npm run typecheck`           |
+| `import type` for type-only imports                                          | ESLint `consistent-type-imports`              |
+| Import grouping (external → `@/` → relative)                                 | ESLint `import/order`                         |
+| No `../` imports; use `@/`                                                   | ESLint `no-restricted-imports`                |
+| `src/app` and `src/components` never import `@/lib/prisma` or `PrismaClient` | ESLint `no-restricted-imports`                |
+| Prisma never reaches a client bundle                                         | `import "server-only"` in `src/lib/prisma.ts` |
+| React hooks rules, Next.js rules, a11y basics                                | `eslint-config-next`                          |
 
 ---
 
@@ -97,7 +97,8 @@ Tenant isolation is the highest-stakes property of this codebase ([ADR-0001](doc
 - **Tenant query pattern: not yet decided.** [ADR-0003](docs/adr/0003-prisma-orm-tenant-pattern-deferred.md) deliberately left open how Prisma targets a tenant schema. The first issue that reads or writes tenant tables (Groups, Sessions, Members, AttendanceRecords) must decide it, write the ADR, and put it behind a single helper in `src/lib/`. Until then, no tenant-table queries exist anywhere else.
 - **Enforce role scope inside the query.** A `host` sees only their assigned Groups. Pass the acting user into the domain function and filter in the `where` clause, not by post-filtering in a page.
 - **Return DTOs, not rows.** Use `select` to return exactly the fields the caller renders. Full `User` rows carry `hashedPassword` and never leave `src/lib/`. Canonical: [`list-pending.ts`](src/lib/organizations/list-pending.ts).
-- **Make multi-write operations atomic.** Wrap them in `prisma.$transaction(async (tx) => …)` and do the uniqueness check inside the transaction. Canonical: [`signup.ts`](src/lib/organizations/signup.ts).
+- **Make multi-write operations atomic.** Wrap them in `prisma.$transaction(async (tx) => …)` and do the uniqueness check inside the transaction. Under Postgres' default READ COMMITTED that check can still race, so also map the unique-index violation (`P2002`) to the same domain error. Canonical: [`signup.ts`](src/lib/organizations/signup.ts).
+- **Make state transitions conditional.** Update with the expected current state in the `where` (`updateMany({ where: { id, status: "PENDING" } })`) and check the count, so two concurrent requests can't both apply the transition. Canonical: [`approve.ts`](src/lib/organizations/approve.ts).
 - **Audit attendance edits in the same transaction.** Every `AttendanceRecord` edit writes its `AttendanceAuditLog` row inside the transaction that makes the edit ([ADR-0008](docs/adr/0008-attendance-edit-window-with-audit-log.md)).
 - **Raw SQL.** Use tagged ``prisma.$queryRaw`…${value}` `` so values are parameterized. `$executeRawUnsafe` is only for identifiers we generate ourselves (e.g. `generateSchemaName()`), with a comment stating why interpolation is safe. Canonical: [`schema-provisioner.ts`](src/lib/organizations/schema-provisioner.ts).
 - **Avoid N+1 queries.** Load relations with `select`/`include`, or batch with `where: { id: { in: ids } }`. Lists that grow (rosters, attendance history) are paginated.
@@ -238,7 +239,8 @@ Stack: Vitest, `node` environment, tests colocated as `src/**/*.test.ts`. For te
 ## 10. Security baseline
 
 - Secrets live in `process.env` and are read only in server modules under `src/lib/`. A secret never gets a `NEXT_PUBLIC_` prefix. New variables are added to `.env.example` with a comment.
-- Modules that touch the database or secrets import `server-only`, directly or through `@/lib/prisma`.
+- Modules that touch the database or secrets import `server-only`, directly or through `@/lib/prisma`. Because of that, Node scripts run with `tsx` (e.g. [`prisma/seed.ts`](prisma/seed.ts)) cannot import `@/lib/prisma` or anything that imports it; they create their own `PrismaClient`.
+- Emails are stored and looked up lowercased, so sign-up and login match case-insensitively.
 - Passwords are handled only through [`src/lib/auth/password.ts`](src/lib/auth/password.ts) (bcrypt). They are never logged, returned, or compared by hand.
 - Auth failures show generic messages ("Invalid email or password."), so errors never reveal whether an account exists.
 - Nothing logs PII, tokens, or full request bodies.
