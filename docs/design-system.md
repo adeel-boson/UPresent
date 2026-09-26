@@ -39,6 +39,17 @@ Those are deliberately separate follow-up work.
 - Config lives in [components.json](../components.json); add components with
   `npx shadcn@latest add <component>`.
 
+### Why Base UI, not Radix
+
+Issue #13 said "Radix primitives", but the project deliberately stays on Base
+UI. Base UI has been stable since v1.0 (December 2025), releases monthly and
+is shadcn's default. Radix is still supported by shadcn but its release
+activity is sporadic. Both Selects submit natively through a hidden input
+with `name`/`required`, so forms work either way. The trade-off accepted is a
+somewhat larger bundle (mostly Select) and the `items` prop Select needs (see
+Component notes). Full comparison, with sources:
+[docs/research/base-ui-vs-radix.md](research/base-ui-vs-radix.md).
+
 ## Color
 
 Base palette is `neutral` — a pure grayscale (zero chroma) scale used for
