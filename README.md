@@ -39,7 +39,7 @@ An attendance-tracking product for schools and colleges. See [`docs/v1-plan.md`]
    npm run db:migrate
    ```
 
-5. Seed a super-admin account (email/password come from `SEED_SUPER_ADMIN_EMAIL` / `SEED_SUPER_ADMIN_PASSWORD` in `.env`):
+5. Seed a super-admin account. Its email and password are the static local-dev values `SEED_SUPER_ADMIN_EMAIL` / `SEED_SUPER_ADMIN_PASSWORD` in `.env`. Every run (re)sets the super-admin's password to exactly `SEED_SUPER_ADMIN_PASSWORD`, so that is always the password to log in with. Local dev only:
 
    ```bash
    npm run db:seed

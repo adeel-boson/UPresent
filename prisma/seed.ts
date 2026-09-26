@@ -17,6 +17,10 @@ async function main() {
 
   const hashedPassword = await hashPassword(password);
 
+  // The password is a static local-dev value from .env, and `update`
+  // deliberately resets it on every run, so re-seeding always restores a
+  // known login and a changed value in .env takes effect. Local dev only:
+  // run against a real database, this would overwrite a real password.
   const superAdmin = await prisma.user.upsert({
     where: { email },
     update: { hashedPassword, role: "SUPER_ADMIN" },
