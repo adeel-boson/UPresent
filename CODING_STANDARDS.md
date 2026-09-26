@@ -52,13 +52,16 @@ Run `npm run format` to fix formatting and `npx eslint --fix` to fix auto-fixabl
 ```
 src/
 ├── app/                       Routes: pages, layouts, server actions, route handlers
-│   └── <route>/
+│   ├── layout.tsx             Root layout: <html>, fonts, the page-title template
+│   ├── (auth)/layout.tsx      Signed-out shell (login, signup): one centered card
+│   ├── (app)/layout.tsx       Signed-in shell (dashboard, admin/…): header + content
+│   └── (group)/<route>/       Route groups don't change the URL (/login, not /(auth)/login)
 │       ├── page.tsx           Thin: guard → call domain → render
 │       ├── actions.ts         Server actions for this route ("use server")
 │       └── _components/       Components used only by this route
 ├── components/
 │   ├── ui/                    shadcn/ui, vendored by the CLI — see §7
-│   └── <feature>/             App components shared by 2+ routes
+│   └── <feature>/             App components shared by 2+ routes (forms/, navigation/, …)
 ├── lib/
 │   ├── <domain>/              Domain modules: organizations/, groups/, attendance/, …
 │   ├── auth/                  Auth.js config, password hashing, guards
@@ -124,8 +127,8 @@ await requireRole("SUPER_ADMIN"); // specific role(s)
 ### Validate every input with Zod
 
 - `FormData`, bound arguments, `params`, `searchParams`, and headers are untrusted. Parse them with a Zod schema at the top of the entry point, after the guard.
-- **Form actions used with `useActionState`:** `schema.safeParse(Object.fromEntries(formData))`, then return a user-facing state on failure. Canonical: [`src/app/signup/actions.ts`](src/app/signup/actions.ts).
-- **Actions called with arguments:** `schema.parse(arg)`. Throwing is correct there, because a malformed ID means a bug or an attack. Canonical: [`src/app/admin/signups/actions.ts`](src/app/admin/signups/actions.ts).
+- **Form actions used with `useActionState`:** `schema.safeParse(Object.fromEntries(formData))`, then return a user-facing state on failure. Canonical: [`src/app/(auth)/signup/actions.ts`](<src/app/(auth)/signup/actions.ts>).
+- **Actions called with arguments:** `schema.parse(arg)`. Throwing is correct there, because a malformed ID means a bug or an attack. Canonical: [`src/app/(app)/admin/signups/actions.ts`](<src/app/(app)/admin/signups/actions.ts>).
 - Define the schema next to the action. Move it into `src/lib/<domain>/` once a second entry point needs it. Derive enum values from Prisma (`z.enum(InstitutionType)`) rather than re-typing them.
 - Zod checks shape, not ownership. Ownership is checked in the domain module (§4).
 
@@ -165,7 +168,7 @@ Use a route handler only for non-React clients: Auth.js, webhooks, file download
 - **Server Components by default.** Add `"use client"` only for state, effects, event handlers, or browser APIs, and push it to the smallest leaf that needs them.
 - **Pass minimal, serializable props to client components.** Pass a DTO with the fields the component renders, not a database row or session object.
 - **Fetch data on the server.** Pages call domain functions directly. Avoid `useEffect` fetching and client `fetch` calls to our own routes. Run independent reads in parallel with `Promise.all`.
-- **Forms.** Use `<form action={…}>` with `useActionState`, and disable the submit button with `pending`. Native attributes (`required`, `type="email"`, `autoComplete`) are for UX; the server's Zod schema is the authority. Canonical: [`src/app/login/page.tsx`](src/app/login/page.tsx).
+- **Forms.** Use `<form action={…}>` with `useActionState`, and disable the submit button with `pending`. Native attributes (`required`, `type="email"`, `autoComplete`) are for UX; the server's Zod schema is the authority. Canonical: [`src/app/(auth)/login/page.tsx`](<src/app/(auth)/login/page.tsx>).
 - **Navigation.** Use `next/link` for internal links, `redirect()` on the server, and `useRouter` only when an event handler must navigate. Routes are typed, so an invalid href fails the typecheck.
 - **Async request APIs.** `params`, `searchParams`, `cookies()`, and `headers()` are Promises. Await them. Type route props with the generated globals `PageProps<"/route">` and `LayoutProps<"/route">`.
 - **Effects are for syncing with external systems only.** Derive values during render instead of mirroring them into state, and reset state with a `key` rather than an effect.
@@ -182,6 +185,7 @@ Use a route handler only for non-React clients: Auth.js, webhooks, file download
 - **Build from `@/components/ui`.** Add components with `npx shadcn@latest add <name>`. Those files are vendored CLI output (and Prettier-ignored): customize by wrapping or composing in `src/components/<feature>/`, and edit a vendored file only when the change must apply app-wide. Say so in the PR when you do.
 - **Use semantic tokens, not raw colors**: `bg-primary`, `text-muted-foreground`, `border-destructive`, not `bg-blue-600`. Attendance status colors are reserved and not yet defined; define them as tokens when the attendance flow is designed.
 - **Merge conditional classes with `cn()`**, never with string concatenation.
+- **Page shells come from layouts.** A new page joins the `(auth)` or `(app)` route group and renders only its content; it doesn't render its own `<main>` or page gutters. Use [`FormErrorAlert`](src/components/forms/form-error-alert.tsx) for a form's action error and [`TextLink`](src/components/navigation/text-link.tsx) for inline links, rather than restyling `Alert` or `Link`.
 - **Design mobile-first.** Base classes target phones and `sm:`/`md:` add larger layouts. Primary tap targets on phone flows are at least 44px (`size="lg"` plus `h-11` or larger).
 - **Accessibility: WCAG 2.2 AA.** Every input has a `<Label htmlFor>`. Errors use `<Alert role="alert">`. Interactive elements are real `<button>`s and links. Focus stays visible. Icons that carry meaning get an `aria-label`.
 - **Domain terms in UI copy.** A `host` is shown by their `host title` (e.g. "Teacher"), never as the literal word "host". School-facing copy may say "student" or "class", but code keeps the domain terms (§8).

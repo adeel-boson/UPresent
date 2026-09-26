@@ -1,5 +1,5 @@
-import { ApproveButton } from "@/app/admin/signups/_components/approve-button";
-import { approveSignup } from "@/app/admin/signups/actions";
+import { ApproveButton } from "@/app/(app)/admin/signups/_components/approve-button";
+import { approveSignup } from "@/app/(app)/admin/signups/actions";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/guards";
@@ -11,7 +11,7 @@ export default async function PendingSignupsPage() {
   const pendingOrganizations = await listPendingOrganizations();
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-10 sm:px-6">
+    <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
         <h1 className="font-heading text-2xl font-semibold">Pending signup requests</h1>
         <p className="text-sm text-muted-foreground">
@@ -47,6 +47,6 @@ export default async function PendingSignupsPage() {
           ))}
         </ul>
       )}
-    </main>
+    </div>
   );
 }
