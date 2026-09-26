@@ -1,13 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockPrisma } = vi.hoisted(() => ({
-  mockPrisma: {
+const { mockPrisma } = vi.hoisted(() => {
+  const mockPrisma = {
     organization: {
       findUnique: vi.fn(),
       updateMany: vi.fn(),
     },
-  },
-}));
+    $executeRaw: vi.fn(),
+    // Runs the callback against the same mock, standing in for the
+    // transaction client. A callback that resolves means the transaction
+    // commits; one that rejects means it rolls back.
+    $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) =>
+      callback(mockPrisma),
+    ),
+  };
+  return { mockPrisma };
+});
 
 vi.mock("@/lib/prisma", () => ({
   prisma: mockPrisma,
@@ -40,6 +48,7 @@ describe("approveOrganization", () => {
     vi.clearAllMocks();
     fakeProvisioner = { provision: vi.fn().mockResolvedValue(undefined) };
     mockPrisma.organization.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.$executeRaw.mockResolvedValue(1);
   });
 
   it("provisions the tenant schema and marks the organization approved", async () => {
@@ -47,7 +56,7 @@ describe("approveOrganization", () => {
 
     await approveOrganization({ organizationId: "org-1", approver: superAdmin }, fakeProvisioner);
 
-    expect(fakeProvisioner.provision).toHaveBeenCalledWith("org_abc123");
+    expect(fakeProvisioner.provision).toHaveBeenCalledWith("org_abc123", mockPrisma);
     expect(mockPrisma.organization.updateMany).toHaveBeenCalledWith({
       where: { id: "org-1", status: "PENDING" },
       data: { status: "APPROVED", approvedAt: expect.any(Date) },
@@ -68,6 +77,36 @@ describe("approveOrganization", () => {
     await approveOrganization({ organizationId: "org-1", approver: superAdmin }, fakeProvisioner);
 
     expect(callOrder).toEqual(["provision", "update"]);
+  });
+
+  it("locks the organization before reading its status, so concurrent approvals run one at a time", async () => {
+    mockPrisma.organization.findUnique.mockResolvedValue(pendingOrganization);
+    const callOrder: string[] = [];
+    mockPrisma.$executeRaw.mockImplementation(async (sql: TemplateStringsArray) => {
+      callOrder.push(sql.join("?"));
+      return 1;
+    });
+    mockPrisma.organization.findUnique.mockImplementation(async () => {
+      callOrder.push("read");
+      return pendingOrganization;
+    });
+
+    await approveOrganization({ organizationId: "org-1", approver: superAdmin }, fakeProvisioner);
+
+    expect(callOrder[0]).toContain("pg_advisory_xact_lock");
+    expect(callOrder[1]).toBe("read");
+    expect(mockPrisma.$executeRaw).toHaveBeenCalledWith(expect.anything(), "org-1");
+  });
+
+  it("commits the provisioner's cleanup, then rethrows, when provisioning fails", async () => {
+    mockPrisma.organization.findUnique.mockResolvedValue(pendingOrganization);
+    fakeProvisioner.provision = vi.fn().mockRejectedValue(new Error("migrate deploy failed"));
+
+    await expect(
+      approveOrganization({ organizationId: "org-1", approver: superAdmin }, fakeProvisioner),
+    ).rejects.toThrow("migrate deploy failed");
+    // A rejected transaction callback would roll back the dropped schema.
+    await expect(mockPrisma.$transaction.mock.results[0]?.value).resolves.toBeDefined();
   });
 
   it("leaves the organization pending when provisioning fails", async () => {

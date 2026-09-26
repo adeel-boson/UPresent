@@ -63,6 +63,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Other agents' git worktrees: separate checkouts with their own .next/.
+    ".claude/worktrees/**",
   ]),
 ]);
 

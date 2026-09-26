@@ -39,6 +39,17 @@ Those are deliberately separate follow-up work.
 - Config lives in [components.json](../components.json); add components with
   `npx shadcn@latest add <component>`.
 
+### Why Base UI, not Radix
+
+Issue #13 said "Radix primitives", but the project deliberately stays on Base
+UI. Base UI has been stable since v1.0 (December 2025), releases monthly and
+is shadcn's default. Radix is still supported by shadcn but its release
+activity is sporadic. Both Selects submit natively through a hidden input
+with `name`/`required`, so forms work either way. The trade-off accepted is a
+somewhat larger bundle (mostly Select) and the `items` prop Select needs (see
+Component notes). Full comparison, with sources:
+[docs/research/base-ui-vs-radix.md](research/base-ui-vs-radix.md).
+
 ## Color
 
 Base palette is `neutral` — a pure grayscale (zero chroma) scale used for
@@ -65,16 +76,34 @@ Level AA success criteria, computed directly from the OKLCH values (see
 | Dark: `primary` text on `card` (link in a card)   | 6.79:1 | 4.5:1 (normal text) | Yes    |
 | Light: `muted-foreground` on `background`         | 4.73:1 | 4.5:1 (normal text) | Yes    |
 | Light: `destructive` on `background`              | 4.76:1 | 4.5:1 (normal text) | Yes    |
+| Light: `input` border on `background` / `card`    | 3.36:1 | 3:1 (UI component)  | Yes    |
+| Dark: `input` border on `background`              | 3.51:1 | 3:1 (UI component)  | Yes    |
+| Dark: `input` border on `card`                    | 3.58:1 | 3:1 (UI component)  | Yes    |
 
 `primary` is used as link text as well as a fill, so every pair is held to
 the 4.5:1 text threshold, not the 3:1 non-text one. `blue-600` is only
 3.4:1 on the dark `card`, which is why dark mode switches to `blue-400` with
 a dark `primary-foreground`.
 
-Known gap: shadcn's default `--input` border (`neutral-200`) is 1.26:1
-against white. Fields here are always paired with a visible `<Label>`
-above them, but if a design relies on the border alone to identify a field,
-raise `--input` to meet SC 1.4.11's 3:1.
+**Field borders.** Input, Select and Textarea draw their border from
+`--input` (`border-input`), not `--border`. `--input` is `oklch(0.64 0 0)` in
+light mode and `oklch(1 0 0 / 38%)` in dark mode. shadcn's defaults
+(`neutral-200`, 1.26:1, and white at 15%, about 1.5:1) failed 3:1. Dark-mode
+ratios are for the translucent white composited over each surface in sRGB,
+the way browsers blend. The same token also tints fields (disabled fields
+in light mode, every field in dark mode) and draws the Outline button's
+dark-mode border, so those are a little stronger than shadcn's. No vendored
+component was edited. Decorative `--border` (card and section dividers)
+stays at shadcn's value because it doesn't identify a component.
+
+Why raise it even though every field has a visible `<Label>`: the
+[Understanding SC 1.4.11](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html)
+doc says a boundary is "only required when there is no other visual way to
+identify the presence of the control", and its explicit failure example is
+an input that "lacks any form of label". So a labelled field with a faint
+border is not a clear failure. But the same doc's passing text-input
+examples all hold the field's indicator to 3:1, and a label shows that a
+field exists, not where it is. Meeting 3:1 removes the question.
 
 ## Type scale and spacing
 
