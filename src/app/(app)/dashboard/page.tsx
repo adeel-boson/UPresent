@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
+
 import { TextLink } from "@/components/navigation/text-link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth/guards";
 import { ROLE_LABELS } from "@/lib/auth/role";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+};
 
 export default async function DashboardPage() {
   const user = await requireUser();

@@ -13,7 +13,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "UPresent",
+  // Each page sets its own title (WCAG 2.4.2), which the template suffixes
+  // with the product name. The default covers pages that set none.
+  title: {
+    template: "%s · UPresent",
+    default: "UPresent",
+  },
   description: "Attendance tracking for schools and colleges.",
 };
 

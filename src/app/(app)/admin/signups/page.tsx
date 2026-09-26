@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { ApproveButton } from "@/app/(app)/admin/signups/_components/approve-button";
 import { approveSignup } from "@/app/(app)/admin/signups/actions";
 import { Badge } from "@/components/ui/badge";
@@ -5,6 +7,10 @@ import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from "@/comp
 import { requireRole } from "@/lib/auth/guards";
 import { INSTITUTION_TYPE_LABELS } from "@/lib/organizations/institution-type";
 import { listPendingOrganizations } from "@/lib/organizations/list-pending";
+
+export const metadata: Metadata = {
+  title: "Pending signup requests",
+};
 
 export default async function PendingSignupsPage() {
   await requireRole("SUPER_ADMIN");
