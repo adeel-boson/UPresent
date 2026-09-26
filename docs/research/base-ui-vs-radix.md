@@ -28,7 +28,7 @@ Taken from reading `src/components/ui/*.tsx`:
 - 4 of 8 components touch Base UI. Only `select` uses a non-trivial primitive (popup,
   positioning, typeahead, hidden form input).
 - 6 app files import from `@/components/ui`. Only 2 call sites use a Base UI-only API: the
-  `items` prop on `<Select>` in `src/app/signup/page.tsx` and `src/app/style-guide/page.tsx`.
+  `items` prop on `<Select>` in `src/app/(auth)/signup/_components/signup-form.tsx` and `src/app/style-guide/page.tsx`.
   Nothing in the app uses `render=` or `asChild`.
 
 ---

@@ -5,7 +5,7 @@ Status: open. These are known gaps in the current code that were deliberately le
 ## Signup reveals whether an account exists
 
 **Problem.** Signing up with an email that's already registered returns "That email is already
-in use." ([`src/app/signup/actions.ts`](../../src/app/signup/actions.ts)). Anyone can use the
+in use." ([`src/app/(auth)/signup/actions.ts`](<../../src/app/(auth)/signup/actions.ts>)). Anyone can use the
 signup form to check whether an email has an account (account enumeration). That contradicts
 the rule in [CODING_STANDARDS.md §10](../../CODING_STANDARDS.md) that errors never reveal whether
 an account exists. The login form already follows that rule.
