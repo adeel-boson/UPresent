@@ -65,7 +65,10 @@
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  /* Field borders (input, select, textarea) must reach 3:1 against
+     background and card (WCAG 2.2 SC 1.4.11): 3.36:1 on white. shadcn's
+     neutral-200 default was 1.26:1. See docs/design-system.md. */
+  --input: oklch(0.64 0 0);
   --ring: oklch(0.546 0.245 262.881);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -107,7 +110,8 @@
     --accent-foreground: oklch(0.985 0 0);
     --destructive: oklch(0.704 0.191 22.216);
     --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
+    /* 3.51:1 on background, 3.58:1 on card; the 15% default was ~1.5:1. */
+    --input: oklch(1 0 0 / 38%);
     --ring: oklch(0.707 0.165 254.624);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
