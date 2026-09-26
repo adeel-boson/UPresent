@@ -2,6 +2,7 @@ import { TextLink } from "@/components/navigation/text-link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth/guards";
+import { ROLE_LABELS } from "@/lib/auth/role";
 
 export default async function DashboardPage() {
   const user = await requireUser();
@@ -18,7 +19,7 @@ export default async function DashboardPage() {
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div>
-          <Badge variant="secondary">{user.role}</Badge>
+          <Badge variant="secondary">{ROLE_LABELS[user.role]}</Badge>
         </div>
         {user.role === "SUPER_ADMIN" ? (
           <TextLink href="/admin/signups" className="text-sm">
