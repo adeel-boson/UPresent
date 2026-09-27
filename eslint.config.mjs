@@ -9,6 +9,9 @@ const noParentRelativeImports = {
   message: "Import via the `@/` alias instead of a parent-relative path.",
 };
 
+const queryThroughDomainModule =
+  "Query through a domain module in src/lib/<domain>/ instead (CODING_STANDARDS.md § Layers).";
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -28,8 +31,31 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    // Tenant tables are reached only through `withTenant`, which builds them
+    // for the caller's Organization. The tenant schema module's own exports
+    // point at a placeholder schema for drizzle-kit. See ADR-0009.
+    files: ["src/**"],
+    ignores: ["src/lib/db/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/lib/db/tenant-schema",
+              message: "Reach tenant tables through withTenant from @/lib/db/tenant (ADR-0009).",
+            },
+          ],
+          patterns: [noParentRelativeImports],
+        },
+      ],
+    },
+  },
+  {
     // Routes and components reach data only through domain modules in
     // `src/lib/<domain>/`, which own authorization and tenant scoping.
+    // Types and enum values from `@/lib/db/schema` stay importable; the
+    // client, the tenant helper and Drizzle's or pg's query APIs don't.
     // See CODING_STANDARDS.md § Layers.
     files: ["src/app/**", "src/components/**"],
     rules: {
@@ -37,21 +63,17 @@ const eslintConfig = defineConfig([
         "error",
         {
           paths: [
-            {
-              name: "@/lib/prisma",
-              message:
-                "Query through a domain module in src/lib/<domain>/ instead (CODING_STANDARDS.md § Layers).",
-            },
-            {
-              // Enums and types from @prisma/client stay importable; only a
-              // second client (and with it direct queries) is banned.
-              name: "@prisma/client",
-              importNames: ["PrismaClient"],
-              message:
-                "Query through a domain module in src/lib/<domain>/ instead (CODING_STANDARDS.md § Layers).",
-            },
+            { name: "pg", message: queryThroughDomainModule },
+            { name: "drizzle-orm", message: queryThroughDomainModule },
           ],
-          patterns: [noParentRelativeImports],
+          patterns: [
+            noParentRelativeImports,
+            {
+              group: ["@/lib/db/*", "!@/lib/db/schema"],
+              message: queryThroughDomainModule,
+            },
+            { group: ["drizzle-orm/*", "@electric-sql/*"], message: queryThroughDomainModule },
+          ],
         },
       ],
     },

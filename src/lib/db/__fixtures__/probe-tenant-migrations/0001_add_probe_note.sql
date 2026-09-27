@@ -1,0 +1,1 @@
+ALTER TABLE "tenant"."Probe" ADD COLUMN "note" text;
