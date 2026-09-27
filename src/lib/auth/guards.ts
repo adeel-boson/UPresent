@@ -1,7 +1,7 @@
-import type { Role } from "@prisma/client";
 import type { Session } from "next-auth";
 import { redirect } from "next/navigation";
 
+import type { Role } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
 
 export type SessionUser = Session["user"];

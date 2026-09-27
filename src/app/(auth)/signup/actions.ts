@@ -1,8 +1,8 @@
 "use server";
 
-import { InstitutionType } from "@prisma/client";
 import { z } from "zod";
 
+import { institutionTypeEnum } from "@/lib/db/schema";
 import { EmailAlreadyInUseError, signUpOrganization } from "@/lib/organizations/signup";
 
 // What the form re-renders with after a failed submit, so the user doesn't
@@ -20,7 +20,7 @@ export type SignupState =
 
 const signupSchema = z.object({
   organizationName: z.string().trim().min(1),
-  institutionType: z.enum(InstitutionType),
+  institutionType: z.enum(institutionTypeEnum.enumValues),
   orgAdminEmail: z.string().trim().toLowerCase().pipe(z.email()),
   orgAdminPassword: z.string().min(8),
 });
