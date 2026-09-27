@@ -22,18 +22,20 @@ Run `npm run format` to fix formatting and `npx eslint --fix` to fix auto-fixabl
 
 ### Enforced by tooling — don't re-check by hand
 
-| Rule                                                                         | Enforced by                                   |
-| ---------------------------------------------------------------------------- | --------------------------------------------- |
-| Formatting, Tailwind class order                                             | Prettier (`.prettierrc.json`)                 |
-| LF line endings                                                              | `.gitattributes`                              |
-| `strict` + `noUncheckedIndexedAccess`                                        | `tsconfig.json`                               |
-| Internal links and redirects point at real routes                            | `typedRoutes` + `npm run typecheck`           |
-| `import type` for type-only imports                                          | ESLint `consistent-type-imports`              |
-| Import grouping (external → `@/` → relative)                                 | ESLint `import/order`                         |
-| No `../` imports; use `@/`                                                   | ESLint `no-restricted-imports`                |
-| `src/app` and `src/components` never import `@/lib/prisma` or `PrismaClient` | ESLint `no-restricted-imports`                |
-| Prisma never reaches a client bundle                                         | `import "server-only"` in `src/lib/prisma.ts` |
-| React hooks rules, Next.js rules, a11y basics                                | `eslint-config-next`                          |
+| Rule                                                                                                                       | Enforced by                                      |
+| -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Formatting, Tailwind class order                                                                                           | Prettier (`.prettierrc.json`)                    |
+| LF line endings                                                                                                            | `.gitattributes`                                 |
+| `strict` + `noUncheckedIndexedAccess`                                                                                      | `tsconfig.json`                                  |
+| Internal links and redirects point at real routes                                                                          | `typedRoutes` + `npm run typecheck`              |
+| `import type` for type-only imports                                                                                        | ESLint `consistent-type-imports`                 |
+| Import grouping (external → `@/` → relative)                                                                               | ESLint `import/order`                            |
+| No `../` imports; use `@/`                                                                                                 | ESLint `no-restricted-imports`                   |
+| `src/app` and `src/components` never import the db client, `@/lib/db/*` (except `@/lib/db/schema`), `drizzle-orm`, or `pg` | ESLint `no-restricted-imports`                   |
+| Only `src/lib/db/` imports the tenant schema module; everything else goes through `withTenant`                             | ESLint `no-restricted-imports`                   |
+| The database client never reaches a client bundle                                                                          | `import "server-only"` in `src/lib/db/client.ts` |
+| Tenant migrations create objects only in the tenant placeholder schema                                                     | `src/lib/db/migrate.test.ts`                     |
+| React hooks rules, Next.js rules, a11y basics                                                                              | `eslint-config-next`                             |
 
 ---
 
@@ -65,15 +67,25 @@ src/
 ├── lib/
 │   ├── <domain>/              Domain modules: organizations/, groups/, attendance/, …
 │   ├── auth/                  Auth.js config, password hashing, guards
-│   └── prisma.ts              The one PrismaClient (server-only)
+│   └── db/
+│       ├── client.ts          The one pg Pool + Drizzle instance (server-only)
+│       ├── schema.ts          Shared tables and enums (`public`); types and enum values
+│       ├── tenant-schema.ts   Per-Organization tables, defined against any schema
+│       ├── tenant.ts          withTenant: the only way to reach tenant tables
+│       ├── migrate.ts         Tenant migration runner and rollout
+│       └── testing.ts         PGlite test database (tests only)
 ├── types/                     Ambient type augmentations only (e.g. next-auth.d.ts)
 └── proxy.ts                   Request-level redirects (Next 16's replacement for middleware)
+db/
+├── migrations/shared/         Generated shared-schema migrations (drizzle.config.ts)
+├── migrations/tenant/         Generated tenant migrations (drizzle.tenant.config.ts)
+└── *.ts                       Scripts run with tsx: migrate, migrate-tenants, seed
 ```
 
 ### Dependency direction
 
 ```
-app/ (pages, actions, route handlers) ──► lib/<domain>/ ──► lib/prisma.ts
+app/ (pages, actions, route handlers) ──► lib/<domain>/ ──► lib/db/
         │                                     │
         └──► components/                      └──► lib/auth/password.ts, other lib/ modules
 ```
@@ -97,15 +109,16 @@ app/ (pages, actions, route handlers) ──► lib/<domain>/ ──► lib/pris
 Tenant isolation is the highest-stakes property of this codebase ([ADR-0001](docs/adr/0001-multi-tenant-schema-per-tenant-isolation.md)). A data leak between Organizations is the worst possible bug here.
 
 - **Derive tenant scope from the session, never from the request.** The Organization, and therefore its `schemaName`, comes from the authenticated user's record. A client can say _which_ Group or Session it means (an ID). It never says which Organization it belongs to, and the domain module re-checks that the ID belongs to the caller's Organization.
-- **Tenant query pattern: not yet decided.** [ADR-0003](docs/adr/0003-prisma-orm-tenant-pattern-deferred.md) deliberately left open how Prisma targets a tenant schema. The first issue that reads or writes tenant tables (Groups, Sessions, Members, AttendanceRecords) must decide it, write the ADR, and put it behind a single helper in `src/lib/`. Until then, no tenant-table queries exist anywhere else.
+- **Tenant query pattern: `withTenant`** ([ADR-0009](docs/adr/0009-drizzle-orm-tenant-table-factory.md)). Tenant tables are defined once in [`tenant-schema.ts`](src/lib/db/tenant-schema.ts) with `schema.table(…)`, never `pgTable`. Domain modules reach them only through `withTenant(organization, ({ db, tables }) => …)` from [`src/lib/db/tenant.ts`](src/lib/db/tenant.ts), passing the Organization loaded for the signed-in user. The `db` and `tables` it hands out are bound to that Organization's schema, and every query names the schema explicitly. So never keep them past the callback, and never mix two Organizations' scopes in one operation. Shared tables (`users`, `organizations`) come from `@/lib/db/schema` and may be joined inside the callback.
 - **Enforce role scope inside the query.** A `host` sees only their assigned Groups. Pass the acting user into the domain function and filter in the `where` clause, not by post-filtering in a page.
-- **Return DTOs, not rows.** Use `select` to return exactly the fields the caller renders. Full `User` rows carry `hashedPassword` and never leave `src/lib/`. Canonical: [`list-pending.ts`](src/lib/organizations/list-pending.ts).
-- **Make multi-write operations atomic.** Wrap them in `prisma.$transaction(async (tx) => …)` and do the uniqueness check inside the transaction. Under Postgres' default READ COMMITTED that check can still race, so also map the unique-index violation (`P2002`) to the same domain error. Canonical: [`signup.ts`](src/lib/organizations/signup.ts).
-- **Make state transitions conditional.** Update with the expected current state in the `where` (`updateMany({ where: { id, status: "PENDING" } })`) and check the count, so two concurrent requests can't both apply the transition. Canonical: [`approve.ts`](src/lib/organizations/approve.ts).
+- **Return DTOs, not rows.** Use `columns` (relational queries) or a `select({ … })` shape to return exactly the fields the caller renders. Full `User` rows carry `hashedPassword` and never leave `src/lib/`. Canonical: [`list-pending.ts`](src/lib/organizations/list-pending.ts).
+- **Make multi-write operations atomic.** Wrap them in `db.transaction(async (tx) => …)`, run every statement through `tx`, and do the uniqueness check inside the transaction. Under Postgres' default READ COMMITTED that check can still race, so also map the unique-index violation (SQLSTATE `23505`, detected with `isUniqueViolation` from [`src/lib/db/errors.ts`](src/lib/db/errors.ts)) to the same domain error. Canonical: [`signup.ts`](src/lib/organizations/signup.ts).
+- **Make state transitions conditional.** Update with the expected current state in the `where` (`.where(and(eq(t.id, id), eq(t.status, "PENDING")))`), add `.returning(…)`, and check that a row came back, so two concurrent requests can't both apply the transition. Canonical: [`approve.ts`](src/lib/organizations/approve.ts).
+- **Session state stays transaction-scoped.** Behind a transaction-mode pooler, consecutive statements may run on different server sessions, and a session setting leaks to the next client. Use `pg_advisory_xact_lock` (never `pg_advisory_lock`) and `set_config(name, value, true)` / `SET LOCAL` (never plain `SET`), inside a transaction.
 - **Audit attendance edits in the same transaction.** Every `AttendanceRecord` edit writes its `AttendanceAuditLog` row inside the transaction that makes the edit ([ADR-0008](docs/adr/0008-attendance-edit-window-with-audit-log.md)).
-- **Raw SQL.** Use tagged ``prisma.$queryRaw`…${value}` `` so values are parameterized. `$executeRawUnsafe` is only for identifiers we generate ourselves (e.g. `generateSchemaName()`), with a comment stating why interpolation is safe. Canonical: [`schema-provisioner.ts`](src/lib/organizations/schema-provisioner.ts).
-- **Avoid N+1 queries.** Load relations with `select`/`include`, or batch with `where: { id: { in: ids } }`. Lists that grow (rosters, attendance history) are paginated.
-- **Migrations.** Create them with `npm run db:migrate` and never edit one that has been applied. Tenant schemas are built by replaying the full migration history ([`schema-provisioner.ts`](src/lib/organizations/schema-provisioner.ts)), so every migration must be safe to run inside a tenant schema as well as the shared one.
+- **Raw SQL.** Prefer the query builder. When SQL is needed, use Drizzle's ``sql`…${value}` `` tag, which sends values as parameters. Put identifiers in with `sql.identifier(name)`, and only names we generate and validate ourselves (e.g. `isGeneratedSchemaName`). `sql.raw()` is only for SQL we wrote, never input, with a comment stating why it's safe. Canonical: [`schema-provisioner.ts`](src/lib/organizations/schema-provisioner.ts), [`migrate.ts`](src/lib/db/migrate.ts).
+- **Avoid N+1 queries.** Load relations with `with` in relational queries or with a join, or batch with `inArray(t.id, ids)`. Lists that grow (rosters, attendance history) are paginated.
+- **Migrations.** Change `schema.ts` or `tenant-schema.ts`, run `npm run db:generate`, and commit the generated files. Never edit a migration that has been applied. Shared migrations (`db/migrations/shared/`) apply to `public` with `npm run db:migrate`. Tenant migrations (`db/migrations/tenant/`) apply to each Organization's schema: on approval, and on deploy with `npm run db:migrate:tenants`. Write tenant migrations expand/contract, since a rollout reaches schemas one at a time and a failed schema stays on its previous version.
 
 ---
 
@@ -129,7 +142,7 @@ await requireRole("SUPER_ADMIN"); // specific role(s)
 - `FormData`, bound arguments, `params`, `searchParams`, and headers are untrusted. Parse them with a Zod schema at the top of the entry point, after the guard.
 - **Form actions used with `useActionState`:** `schema.safeParse(Object.fromEntries(formData))`, then return a user-facing state on failure. Canonical: [`src/app/(auth)/signup/actions.ts`](<src/app/(auth)/signup/actions.ts>).
 - **Actions called with arguments:** `schema.parse(arg)`. Throwing is correct there, because a malformed ID means a bug or an attack. Canonical: [`src/app/(app)/admin/signups/actions.ts`](<src/app/(app)/admin/signups/actions.ts>).
-- Define the schema next to the action. Move it into `src/lib/<domain>/` once a second entry point needs it. Derive enum values from Prisma (`z.enum(InstitutionType)`) rather than re-typing them.
+- Define the schema next to the action. Move it into `src/lib/<domain>/` once a second entry point needs it. Derive enum values from the Drizzle schema (`z.enum(institutionTypeEnum.enumValues)`) rather than re-typing them.
 - Zod checks shape, not ownership. Ownership is checked in the domain module (§4).
 
 ### Action shape
@@ -197,12 +210,12 @@ Use a route handler only for non-React clients: Auth.js, webhooks, file download
 
 ### Types
 
-- **Derive types from their source instead of redeclaring them.** Use Prisma's generated types and enums (`Role`, `InstitutionType`), `z.infer<typeof schema>`, `Session["user"]`, and `Awaited<ReturnType<…>>`.
+- **Derive types from their source instead of redeclaring them.** Use the types and enums exported from [`src/lib/db/schema.ts`](src/lib/db/schema.ts) (`Role`, `InstitutionType`, `Organization`, `typeof table.$inferInsert`), `z.infer<typeof schema>`, `Session["user"]`, and `Awaited<ReturnType<…>>`.
 - **Use `type` for data shapes and `interface` for seams.** A seam is a contract with multiple adapters, such as `SchemaProvisioner`, and interfaces are also used for module augmentation.
 - **Give exported functions in `src/lib/` explicit return types.** The return type is part of the module's interface.
 - **Handle `unknown` by narrowing.** Narrow external data with Zod or type guards. `any`, `as` casts, and non-null `!` are for trusted boundaries only, each with a comment explaining why it's safe.
 - **Model mutually exclusive states as discriminated unions**, not as several optional fields.
-- **Prefer string-literal unions to TS `enum`.** Prisma enums are fine as generated.
+- **Prefer string-literal unions to TS `enum`.** Database enums are `pgEnum`s, whose values type as string-literal unions.
 
 ### Errors
 
@@ -232,7 +245,18 @@ Use a route handler only for non-React clients: Auth.js, webhooks, file download
 Stack: Vitest, `node` environment, tests colocated as `src/**/*.test.ts`. For test-first work, use the `tdd` skill.
 
 - **Test domain modules at their interface.** Call the exported function and assert on its result, its thrown errors, and its calls across the seams. Canonical: [`approve.test.ts`](src/lib/organizations/approve.test.ts).
-- **Mock only at system boundaries**: `@/lib/prisma`, injected seams (`SchemaProvisioner`), `next/navigation`, and the clock. Never mock our own domain modules from inside their own tests. Use `vi.hoisted` + `vi.mock` as in the existing tests.
+- **Run data access against real Postgres semantics, not a mocked query builder.** Domain tests swap the app's client for PGlite, an in-process Postgres with the real shared migrations applied, via `createTestDatabase()` from [`src/lib/db/testing.ts`](src/lib/db/testing.ts). They call `resetTestDatabase` in `beforeEach` and assert on the rows. Canonical: [`signup.test.ts`](src/lib/organizations/signup.test.ts):
+
+  ```ts
+  const { testDb } = await vi.hoisted(async () => {
+    const { createTestDatabase } = await import("@/lib/db/testing");
+    return { testDb: await createTestDatabase() };
+  });
+  vi.mock("@/lib/db/client", () => ({ db: testDb }));
+  ```
+
+- **Tenant code is tested through `withTenant` against real tenant schemas.** [`tenant.test.ts`](src/lib/db/tenant.test.ts) shows how: migrate two `org_…` schemas with the tenant runner, then assert that data written through one Organization's scope is invisible to the other's.
+- **Mock only at system boundaries**: injected seams (`SchemaProvisioner`, `TenantMigrationRunner`), `next/navigation`, `@/lib/auth`, and the clock. To force a race or a failure the database can't produce on one connection, spy on the one call at that seam (e.g. the in-transaction lookup in `signup.test.ts`), and let the rest run for real. Never mock our own domain modules from inside their own tests. Use `vi.hoisted` + `vi.mock` as in the existing tests.
 - **Name tests as behaviors in domain language**, e.g. `"throws when the organization is already approved"`.
 - **Take expected values from the spec or literals.** Never recompute them the way the code does.
 - **Fix bugs test-first.** Write the failing test, then the fix.
@@ -244,8 +268,7 @@ Stack: Vitest, `node` environment, tests colocated as `src/**/*.test.ts`. For te
 ## 10. Security baseline
 
 - Secrets live in `process.env` and are read only in server modules under `src/lib/`. A secret never gets a `NEXT_PUBLIC_` prefix. New variables are added to `.env.example` with a comment.
-- Modules that touch the database or secrets import `server-only`, directly or through `@/lib/prisma`. Because of that, Node scripts run with `tsx` (e.g. [`prisma/seed.ts`](prisma/seed.ts)) cannot import `@/lib/prisma` or anything that imports it; they create their own `PrismaClient`.
-- Emails are stored and looked up lowercased, so sign-up and login match case-insensitively.
+- Modules that touch the database or secrets import `server-only`, directly or through `@/lib/db/client`. Because of that, Node scripts run with `tsx` (e.g. [`db/seed.ts`](db/seed.ts)) cannot import `@/lib/db/client` or anything that imports it. They create their own Drizzle instance and load `.env` with `loadEnv()` from [`db/load-env.ts`](db/load-env.ts). Code they share with the app (e.g. [`src/lib/db/migrate.ts`](src/lib/db/migrate.ts)) takes its database as an argument instead of importing the client.- Emails are stored and looked up lowercased, so sign-up and login match case-insensitively.
 - Passwords are handled only through [`src/lib/auth/password.ts`](src/lib/auth/password.ts) (bcrypt). They are never logged, returned, or compared by hand.
 - Auth failures show generic messages ("Invalid email or password."), so errors never reveal whether an account exists.
 - Nothing logs PII, tokens, or full request bodies.
@@ -256,7 +279,7 @@ Stack: Vitest, `node` environment, tests colocated as `src/**/*.test.ts`. For te
 ## 11. Comments and docs
 
 - **Comments explain why, not what.** Record the constraint, the invariant, or the rejected alternative, and link the ADR when one applies. Canonical: the comments in [`approve.ts`](src/lib/organizations/approve.ts) and [`schema-provisioner.ts`](src/lib/organizations/schema-provisioner.ts).
-- **Say why unsafe-looking code is safe** (e.g. why this `$executeRawUnsafe` interpolation is safe).
+- **Say why unsafe-looking code is safe** (e.g. why this `sql.raw` or `sql.identifier` is safe).
 - **No commented-out code.** Git keeps history.
 - **Every `TODO` links an issue**: `// TODO(#12): …`.
 - **Record decisions as they are made.** A new architectural decision gets an ADR (`domain-modeling` skill), and new vocabulary goes into `CONTEXT.md`.

@@ -4,61 +4,46 @@ Status: open. The app isn't deployed yet ([ADR-0002](../adr/0002-nextjs-fullstac
 targets Vercel). These are the things in the current code that stop, or put at risk, a Vercel
 deploy.
 
-## 1. Tenant provisioning shells out to the Prisma CLI
+## 1. Tenant provisioning shelled out to the Prisma CLI — resolved
 
-**Problem.** Approving an Organization runs `npx --no-install prisma migrate deploy` in a
-child process, inside the super-admin's approval request
-([`schema-provisioner.ts`](../../src/lib/organizations/schema-provisioner.ts)).
+Resolved by [ADR-0009](../adr/0009-drizzle-orm-tenant-table-factory.md) (option 1 below).
+Approval now creates the schema and applies the tenant-only migrations in-process, inside the
+approval transaction, through the app's own pool
+([`schema-provisioner.ts`](../../src/lib/organizations/schema-provisioner.ts),
+[`migrate.ts`](../../src/lib/db/migrate.ts)). There's no CLI, child process, or
+full-history replay.
 
-**Why it won't work on Vercel.**
+- `db/migrations/tenant/` ships with the approval route through `outputFileTracingIncludes`
+  in `next.config.ts`. The build's trace for `/admin/signups` lists the folder. **Unverified:**
+  not yet observed on a real Vercel deploy.
+- A failed or killed provisioning run rolls back with the approval transaction, so no
+  half-migrated schema is left behind. Approval sets a transaction-local `statement_timeout`
+  (60 s) so a hung run fails well inside Vercel's 300 s default.
+- The runner's lock is `pg_advisory_xact_lock`, which is safe behind a transaction-mode pooler.
+  Prisma's 10 s `migrate deploy` lock is gone.
 
-- Next.js decides what goes into a serverless function by tracing `import`s. A child process
-  running `npx prisma` isn't traced, so the CLI, the schema engine and `prisma/migrations/`
-  aren't guaranteed to be in the function bundle. (Inferred from the tracing docs, not yet
-  observed on a real deploy.)
-- The request holds a database transaction (the per-Organization advisory lock) for the
-  whole migration. Vercel caps function duration (300 s by default), and approval's
-  transaction timeout is about 255 s. If Vercel kills the function mid-migration, the
-  cleanup that drops a half-migrated schema never runs, and the next approval hits P3009
-  until someone drops that schema by hand.
-- Prisma Migrate needs a direct (non-pooled) connection, but the app on Vercel should connect
-  through a pooler. `prisma/schema.prisma` has no `directUrl` yet.
-- Prisma's own `migrate deploy` lock (key 72707369) times out after 10 s, so two approvals of
-  _different_ Organizations at once can fail.
-
-**Options.**
-
-1. Replace the CLI with an in-process migration runner that applies tenant-only SQL files
-   through the app's own connection. This is the recommendation in
-   [docs/research/tenant-schema-pattern.md](../research/tenant-schema-pattern.md), and it
-   also fixes the full-history replay into every tenant schema.
-2. Keep the CLI but move provisioning out of the request, into a job that runs where the CLI
-   exists (a CI step, a queue worker, or a non-serverless host). Approval then needs a
-   "setting up" state, which [ADR-0007](../adr/0007-gated-self-serve-onboarding-sync-provisioning.md)
-   already names as the future path.
-3. Bundle the CLI into the function with `outputFileTracingIncludes`. This is fragile, and
-   it still leaves the time limit and the direct-connection problem.
+The options considered were: (1) an in-process runner (chosen), (2) moving provisioning to an
+asynchronous job, and (3) bundling the CLI into the function.
 
 ## 2. ADR-0007's synchronous provisioning
 
-ADR-0007 accepts provisioning inside the approval request as fast enough at pilot scale.
-On Vercel that only holds if provisioning stays well under the function duration limit.
-Option 1 above keeps it synchronous (a few `CREATE TABLE`s over an existing connection).
-Option 2 makes it asynchronous and supersedes that part of ADR-0007.
+Kept. Provisioning is now a `CREATE SCHEMA` plus the tenant migrations over an existing
+connection, which is well within the function duration limit at pilot scale. Revisit if tenant
+migrations grow slow.
 
 ## 3. Deploy-time migrations and configuration
 
-- **Shared-schema migrations:** nothing runs `prisma migrate deploy` for the shared schema
-  on deploy yet. It needs a build or CI step using a direct connection URL.
+- **Migrations on deploy:** run `npm run db:migrate` (shared schema) and then
+  `npm run db:migrate:tenants` (every approved Organization's schema) as a build or CI step
+  before traffic shifts. Nothing runs them automatically yet. Use a direct (non-pooled)
+  connection URL for this step. The app itself can use the pooled one.
+- **Connection pooling:** `src/lib/db/client.ts` keeps one small module-scope `pg.Pool`
+  (`max: 5`, 5 s idle timeout). Vercel also recommends `attachDatabasePool` from
+  `@vercel/functions`, so idle connections close before a function suspends. Add it when
+  deploying.
 - **Environment variables:** `DATABASE_URL` (pooled) and `AUTH_SECRET` must be set in the
-  Vercel project. A direct URL for migrations is also needed once `directUrl` is added. The
-  `SEED_SUPER_ADMIN_*` variables are only for the local seed script.
+  Vercel project, plus a direct URL for the migration step. The `SEED_SUPER_ADMIN_*` variables
+  are only for the local seed script.
 - **`trustHost: true`** in [`src/lib/auth/config.ts`](../../src/lib/auth/config.ts) is set for
   `npm run start` and self-hosting. Vercel is trusted by Auth.js without it. Recheck it if
   the app ever sits behind a proxy that forwards an untrusted `Host` header.
-
-## Decision needed
-
-Choose between option 1 (in-process tenant migrations, keeping ADR-0007 synchronous) and
-option 2 (asynchronous provisioning, superseding part of ADR-0007), and record the choice as
-an ADR along with the tenant query pattern that ADR-0003 left open.

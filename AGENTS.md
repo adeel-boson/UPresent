@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Coding standards
 
-Read [`CODING_STANDARDS.md`](CODING_STANDARDS.md) before writing, changing, or reviewing code in `src/` or `prisma/`. It defines the layers, the tenant-data rules, and the definition of done (`npm run check` green).
+Read [`CODING_STANDARDS.md`](CODING_STANDARDS.md) before writing, changing, or reviewing code in `src/` or `db/`. It defines the layers, the tenant-data rules, and the definition of done (`npm run check` green).
 
 ## Agent skills
 

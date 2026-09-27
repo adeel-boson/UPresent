@@ -74,16 +74,16 @@ These were discussed and deliberately deferred — not overlooked. Full detail i
 
 ## Tech stack
 
-| Concern             | Choice                                           | Why                                                                                                                            |
-| ------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| App framework       | Next.js (App Router), full-stack, one deployable | [ADR-0002](./adr/0002-nextjs-fullstack-on-vercel.md)                                                                           |
-| Hosting             | Vercel (not yet deployed — local dev for now)    | [ADR-0002](./adr/0002-nextjs-fullstack-on-vercel.md)                                                                           |
-| Database            | Postgres, one schema per Organization (tenant)   | [ADR-0001](./adr/0001-multi-tenant-schema-per-tenant-isolation.md)                                                             |
-| Local dev database  | Docker Postgres                                  | —                                                                                                                              |
-| ORM                 | Prisma                                           | [ADR-0003](./adr/0003-prisma-orm-tenant-pattern-deferred.md) (schema-per-tenant implementation pattern deliberately left open) |
-| Auth                | Auth.js, email + password with verification      | [ADR-0004](./adr/0004-authjs-email-password.md)                                                                                |
-| Transactional email | Resend                                           | —                                                                                                                              |
-| Testing             | TDD from the start                               | GitHub Actions CI deferred until later                                                                                         |
+| Concern             | Choice                                           | Why                                                                                                                     |
+| ------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| App framework       | Next.js (App Router), full-stack, one deployable | [ADR-0002](./adr/0002-nextjs-fullstack-on-vercel.md)                                                                    |
+| Hosting             | Vercel (not yet deployed — local dev for now)    | [ADR-0002](./adr/0002-nextjs-fullstack-on-vercel.md)                                                                    |
+| Database            | Postgres, one schema per Organization (tenant)   | [ADR-0001](./adr/0001-multi-tenant-schema-per-tenant-isolation.md)                                                      |
+| Local dev database  | Docker Postgres                                  | —                                                                                                                       |
+| ORM                 | Drizzle ORM (node-postgres)                      | [ADR-0009](./adr/0009-drizzle-orm-tenant-table-factory.md) (supersedes ADR-0003; decides the schema-per-tenant pattern) |
+| Auth                | Auth.js, email + password with verification      | [ADR-0004](./adr/0004-authjs-email-password.md)                                                                         |
+| Transactional email | Resend                                           | —                                                                                                                       |
+| Testing             | TDD from the start                               | GitHub Actions CI deferred until later                                                                                  |
 
 ## Where to look next
 

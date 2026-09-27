@@ -33,10 +33,11 @@ An attendance-tracking product for schools and colleges. See [`docs/v1-plan.md`]
    docker compose up -d
    ```
 
-4. Create and apply the database schema:
+4. Apply the database migrations: the shared schema, then every approved Organization's tenant schema (none yet on a fresh database):
 
    ```bash
    npm run db:migrate
+   npm run db:migrate:tenants
    ```
 
 5. Seed a super-admin account. Its email and password are the static local-dev values `SEED_SUPER_ADMIN_EMAIL` / `SEED_SUPER_ADMIN_PASSWORD` in `.env`. Every run (re)sets the super-admin's password to exactly `SEED_SUPER_ADMIN_PASSWORD`, so that is always the password to log in with. Local dev only:
@@ -55,22 +56,38 @@ An attendance-tracking product for schools and colleges. See [`docs/v1-plan.md`]
 
 ## Scripts
 
-| Command                           | What it does                                              |
-| --------------------------------- | --------------------------------------------------------- |
-| `npm run dev`                     | Start the Next.js dev server                              |
-| `npm run build` / `npm run start` | Production build / start                                  |
-| `npm run check`                   | Typecheck, lint, format check and tests (the merge gate)  |
-| `npm run typecheck`               | Generate route types, then `tsc --noEmit`                 |
-| `npm run lint`                    | ESLint                                                    |
-| `npm run format`                  | Format the repo with Prettier                             |
-| `npm test`                        | Run the test suite once                                   |
-| `npm run test:watch`              | Run tests in watch mode                                   |
-| `npm run db:migrate`              | Create/apply Prisma migrations against the local database |
-| `npm run db:seed`                 | (Re-)seed the super-admin account                         |
-| `npm run db:studio`               | Open Prisma Studio to browse the local database           |
+| Command                           | What it does                                                                                          |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `npm run dev`                     | Start the Next.js dev server                                                                          |
+| `npm run build` / `npm run start` | Production build / start                                                                              |
+| `npm run check`                   | Typecheck, lint, format check and tests (the merge gate)                                              |
+| `npm run typecheck`               | Generate route types, then `tsc --noEmit`                                                             |
+| `npm run lint`                    | ESLint                                                                                                |
+| `npm run format`                  | Format the repo with Prettier                                                                         |
+| `npm test`                        | Run the test suite once (domain tests run against an in-process Postgres, PGlite; no database needed) |
+| `npm run test:watch`              | Run tests in watch mode                                                                               |
+| `npm run db:generate`             | Generate migrations from schema changes (shared and tenant) into `db/migrations/`                     |
+| `npm run db:migrate`              | Apply pending shared-schema migrations                                                                |
+| `npm run db:migrate:tenants`      | Apply pending tenant migrations to every approved Organization's schema                               |
+| `npm run db:seed`                 | (Re-)seed the super-admin account                                                                     |
+| `npm run db:studio`               | Open Drizzle Studio to browse the shared schema                                                       |
+
+## Changing the database schema
+
+Shared tables (`User`, `Organization`) are defined in [`src/lib/db/schema.ts`](src/lib/db/schema.ts), and per-Organization tables in [`src/lib/db/tenant-schema.ts`](src/lib/db/tenant-schema.ts) ([ADR-0009](docs/adr/0009-drizzle-orm-tenant-table-factory.md)). Edit one, then run `npm run db:generate` and commit the new files under `db/migrations/`. Apply them with `npm run db:migrate` and `npm run db:migrate:tenants`. Never edit a migration that has been applied.
+
+## Upgrading a local database from before Drizzle
+
+Databases created while the project used Prisma (they have a `_prisma_migrations` table, and every `org_…` schema holds copies of `User`/`Organization`) are not migrated in place. They only ever held local test data, so recreate the database, then follow steps 4–5 above:
+
+```bash
+docker compose down -v   # deletes the local Postgres volume
+docker compose up -d
+npm run db:migrate && npm run db:migrate:tenants && npm run db:seed
+```
 
 ## Stack
 
-Next.js (App Router, TypeScript) · Prisma · Postgres (Docker locally) · Auth.js (Credentials provider) · Vitest. See [`docs/v1-plan.md`](docs/v1-plan.md#tech-stack) for rationale and the linked ADRs.
+Next.js (App Router, TypeScript) · Drizzle ORM · Postgres (Docker locally) · Auth.js (Credentials provider) · Vitest. See [`docs/v1-plan.md`](docs/v1-plan.md#tech-stack) for rationale and the linked ADRs.
 
 How code here is written, and what "done" means: [`CODING_STANDARDS.md`](CODING_STANDARDS.md).
