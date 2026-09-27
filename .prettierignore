@@ -2,7 +2,8 @@
 .next/
 node_modules/
 package-lock.json
-prisma/migrations/
+db/migrations/
+src/lib/db/__fixtures__/probe-tenant-migrations/
 next-env.d.ts
 
 # shadcn/ui output: kept byte-identical to the CLI so `shadcn add --overwrite`

@@ -1,52 +1,88 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { sql } from "drizzle-orm";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createPrismaSchemaProvisioner } from "@/lib/organizations/schema-provisioner";
+import type { TenantMigrationRunner } from "@/lib/db/migrate";
+import {
+  createTestDatabase,
+  resetTestDatabase,
+  schemaExists,
+  type TestDatabase,
+} from "@/lib/db/testing";
+import { createSchemaProvisioner } from "@/lib/organizations/schema-provisioner";
 
 const SCHEMA_NAME = "org_0123456789abcdef0123456789abcdef";
 
-describe("createPrismaSchemaProvisioner", () => {
-  let runMigrations: ReturnType<typeof vi.fn<(databaseUrl: string) => Promise<void>>>;
-  let db: { $executeRawUnsafe: ReturnType<typeof vi.fn<(query: string) => Promise<number>>> };
+describe("createSchemaProvisioner", () => {
+  let db: TestDatabase;
+  let runMigrations: ReturnType<typeof vi.fn<TenantMigrationRunner>>;
 
-  beforeEach(() => {
-    vi.stubEnv("DATABASE_URL", "postgresql://user:secret@localhost:5433/upresent");
-    runMigrations = vi.fn<(databaseUrl: string) => Promise<void>>().mockResolvedValue(undefined);
-    db = { $executeRawUnsafe: vi.fn<(query: string) => Promise<number>>().mockResolvedValue(0) };
+  beforeAll(async () => {
+    db = await createTestDatabase();
   });
 
-  afterEach(() => {
-    vi.unstubAllEnvs();
+  afterAll(async () => {
+    await db.$client.close();
+  });
+
+  beforeEach(async () => {
+    await resetTestDatabase(db);
+    runMigrations = vi.fn<TenantMigrationRunner>().mockResolvedValue(undefined);
   });
 
   it("migrates the tenant schema and leaves it in place", async () => {
-    const provisioner = createPrismaSchemaProvisioner(runMigrations);
+    const provisioner = createSchemaProvisioner(runMigrations);
 
-    await provisioner.provision(SCHEMA_NAME, db);
+    await db.transaction((tx) => provisioner.provision(SCHEMA_NAME, tx));
 
-    expect(runMigrations).toHaveBeenCalledWith(
-      "postgresql://user:secret@localhost:5433/upresent?schema=org_0123456789abcdef0123456789abcdef",
-    );
-    expect(db.$executeRawUnsafe).not.toHaveBeenCalled();
+    expect(runMigrations).toHaveBeenCalledExactlyOnceWith(expect.anything(), SCHEMA_NAME);
+    await expect(schemaExists(db, SCHEMA_NAME)).resolves.toBe(true);
   });
 
   it("drops the half-migrated schema and rethrows when migrating fails", async () => {
-    const migrateError = new Error("migrate deploy failed");
-    runMigrations.mockRejectedValue(migrateError);
-    const provisioner = createPrismaSchemaProvisioner(runMigrations);
+    const migrateError = new Error("tenant migration failed");
+    runMigrations.mockImplementation(async (tx, schemaName) => {
+      await tx.execute(sql`CREATE TABLE ${sql.identifier(schemaName)}."HalfMigrated" (id int)`);
+      throw migrateError;
+    });
+    const provisioner = createSchemaProvisioner(runMigrations);
 
-    await expect(provisioner.provision(SCHEMA_NAME, db)).rejects.toBe(migrateError);
-    expect(db.$executeRawUnsafe).toHaveBeenCalledExactlyOnceWith(
-      'DROP SCHEMA IF EXISTS "org_0123456789abcdef0123456789abcdef" CASCADE',
+    // The transaction commits, as approval's does: the cleanup must not
+    // depend on a rollback.
+    const error = await db.transaction(async (tx) =>
+      provisioner.provision(SCHEMA_NAME, tx).then(
+        () => null,
+        (provisionError: unknown) => provisionError,
+      ),
     );
+
+    expect(error).toBe(migrateError);
+    await expect(schemaExists(db, SCHEMA_NAME)).resolves.toBe(false);
+  });
+
+  it("drops a half-migrated schema left by an earlier attempt when migrating fails again", async () => {
+    await db.execute(sql`CREATE SCHEMA ${sql.identifier(SCHEMA_NAME)}`);
+    await db.execute(sql`CREATE TABLE ${sql.identifier(SCHEMA_NAME)}."Leftover" (id int)`);
+    runMigrations.mockRejectedValue(new Error("tenant migration failed"));
+    const provisioner = createSchemaProvisioner(runMigrations);
+
+    await db.transaction(async (tx) => {
+      await expect(provisioner.provision(SCHEMA_NAME, tx)).rejects.toThrow(
+        "tenant migration failed",
+      );
+    });
+
+    await expect(schemaExists(db, SCHEMA_NAME)).resolves.toBe(false);
   });
 
   it("refuses a schema name that generateSchemaName could not have produced", async () => {
-    const provisioner = createPrismaSchemaProvisioner(runMigrations);
+    const provisioner = createSchemaProvisioner(runMigrations);
 
-    await expect(provisioner.provision('org_x"; DROP SCHEMA public; --', db)).rejects.toThrow(
-      "Refusing to provision invalid schema name",
-    );
+    await db.transaction(async (tx) => {
+      await expect(provisioner.provision('org_x"; DROP SCHEMA public; --', tx)).rejects.toThrow(
+        "Refusing to provision invalid schema name",
+      );
+    });
     expect(runMigrations).not.toHaveBeenCalled();
-    expect(db.$executeRawUnsafe).not.toHaveBeenCalled();
+    await expect(schemaExists(db, "public")).resolves.toBe(true);
   });
 });

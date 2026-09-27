@@ -1,7 +1,8 @@
-import type { Role } from "@prisma/client";
+import { eq } from "drizzle-orm";
 
 import { verifyPassword } from "@/lib/auth/password";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db/client";
+import { users, type Role } from "@/lib/db/schema";
 
 export type AuthenticateInput = {
   email: string;
@@ -26,15 +27,10 @@ const DUMMY_HASH = "$2b$12$aZ1A.CgiGM1Tf8QiIPvayeMDQqkMSwzoTc80lYCqhkN8cKTrvtrpy
 export async function authenticateUser(
   input: AuthenticateInput,
 ): Promise<AuthenticatedUser | null> {
-  const user = await prisma.user.findUnique({
-    where: { email: input.email.trim().toLowerCase() },
-    select: {
-      id: true,
-      email: true,
-      role: true,
-      hashedPassword: true,
-      organization: { select: { status: true } },
-    },
+  const user = await db.query.users.findFirst({
+    where: eq(users.email, input.email.trim().toLowerCase()),
+    columns: { id: true, email: true, role: true, hashedPassword: true },
+    with: { organization: { columns: { status: true } } },
   });
 
   const isValidPassword = await verifyPassword(input.password, user?.hashedPassword ?? DUMMY_HASH);

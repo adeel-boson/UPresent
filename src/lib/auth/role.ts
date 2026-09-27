@@ -1,8 +1,8 @@
-import type { Role } from "@prisma/client";
+import type { Role } from "@/lib/db/schema";
 
 // UI copy for each Role, in CONTEXT.md's vocabulary. Typed as a Record so
-// adding an enum value in schema.prisma fails the typecheck until it has a
-// label.
+// adding an enum value in src/lib/db/schema.ts fails the typecheck until it
+// has a label.
 export const ROLE_LABELS: Record<Role, string> = {
   SUPER_ADMIN: "Super-admin",
   ORG_ADMIN: "Org-admin",

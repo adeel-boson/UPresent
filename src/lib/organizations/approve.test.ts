@@ -1,26 +1,16 @@
+import { eq, sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockPrisma } = vi.hoisted(() => {
-  const mockPrisma = {
-    organization: {
-      findUnique: vi.fn(),
-      updateMany: vi.fn(),
-    },
-    $executeRaw: vi.fn(),
-    // Runs the callback against the same mock, standing in for the
-    // transaction client. A callback that resolves means the transaction
-    // commits; one that rejects means it rolls back.
-    $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) =>
-      callback(mockPrisma),
-    ),
-  };
-  return { mockPrisma };
+const { testDb } = await vi.hoisted(async () => {
+  const { createTestDatabase } = await import("@/lib/db/testing");
+  return { testDb: await createTestDatabase() };
 });
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: mockPrisma,
-}));
+vi.mock("@/lib/db/client", () => ({ db: testDb }));
 
+import type { MigratableDatabase } from "@/lib/db/migrate";
+import { organizations } from "@/lib/db/schema";
+import { resetTestDatabase, schemaExists } from "@/lib/db/testing";
 import {
   ApprovalNotPermittedError,
   approveOrganization,
@@ -29,94 +19,111 @@ import {
 } from "@/lib/organizations/approve";
 import type { SchemaProvisioner } from "@/lib/organizations/schema-provisioner";
 
-const pendingOrganization = {
-  id: "org-1",
-  name: "Springfield Elementary",
-  institutionType: "SCHOOL",
-  status: "PENDING",
-  schemaName: "org_abc123",
-  createdAt: new Date(),
-  approvedAt: null,
-};
+const SCHEMA_NAME = "org_0123456789abcdef0123456789abcdef";
 
 const superAdmin = { role: "SUPER_ADMIN" } as const;
 
-describe("approveOrganization", () => {
-  let fakeProvisioner: SchemaProvisioner;
+type Provision = SchemaProvisioner["provision"];
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    fakeProvisioner = { provision: vi.fn().mockResolvedValue(undefined) };
-    mockPrisma.organization.updateMany.mockResolvedValue({ count: 1 });
-    mockPrisma.$executeRaw.mockResolvedValue(1);
+async function readOrganization() {
+  return testDb.query.organizations.findFirst({ where: eq(organizations.id, "org-1") });
+}
+
+// True while the caller's transaction holds approval's advisory lock for the
+// Organization (a bigint key, which pg_locks splits into classid/objid).
+async function holdsApprovalLock(tx: MigratableDatabase, organizationId: string) {
+  const result = await tx.execute(sql`
+    SELECT EXISTS (
+      SELECT 1 FROM pg_locks
+      WHERE locktype = 'advisory' AND granted AND objsubid = 1
+        AND (classid::bigint << 32 | objid::bigint) = hashtextextended(${organizationId}, 0)
+    ) AS "held"
+  `);
+  // The driver-generic database types `execute`'s result as unknown; PGlite
+  // (like pg) returns `{ rows }`.
+  return (result as unknown as { rows: { held: boolean }[] }).rows[0]?.held;
+}
+
+describe("approveOrganization", () => {
+  let fakeProvisioner: SchemaProvisioner & { provision: ReturnType<typeof vi.fn<Provision>> };
+
+  beforeEach(async () => {
+    await resetTestDatabase(testDb);
+    await testDb.insert(organizations).values({
+      id: "org-1",
+      name: "Springfield Elementary",
+      institutionType: "SCHOOL",
+      schemaName: SCHEMA_NAME,
+    });
+    fakeProvisioner = { provision: vi.fn<Provision>().mockResolvedValue(undefined) };
   });
 
   it("provisions the tenant schema and marks the organization approved", async () => {
-    mockPrisma.organization.findUnique.mockResolvedValue(pendingOrganization);
-
     await approveOrganization({ organizationId: "org-1", approver: superAdmin }, fakeProvisioner);
 
-    expect(fakeProvisioner.provision).toHaveBeenCalledWith("org_abc123", mockPrisma);
-    expect(mockPrisma.organization.updateMany).toHaveBeenCalledWith({
-      where: { id: "org-1", status: "PENDING" },
-      data: { status: "APPROVED", approvedAt: expect.any(Date) },
+    expect(fakeProvisioner.provision).toHaveBeenCalledExactlyOnceWith(
+      SCHEMA_NAME,
+      expect.anything(),
+    );
+    await expect(readOrganization()).resolves.toMatchObject({
+      status: "APPROVED",
+      approvedAt: expect.any(Date),
     });
   });
 
   it("provisions before updating status", async () => {
-    mockPrisma.organization.findUnique.mockResolvedValue(pendingOrganization);
-    const callOrder: string[] = [];
-    fakeProvisioner.provision = vi.fn().mockImplementation(async () => {
-      callOrder.push("provision");
-    });
-    mockPrisma.organization.updateMany.mockImplementation(async () => {
-      callOrder.push("update");
-      return { count: 1 };
+    let statusDuringProvisioning: string | undefined;
+    fakeProvisioner.provision.mockImplementation(async (_schemaName, tx) => {
+      const [organization] = await tx
+        .select({ status: organizations.status })
+        .from(organizations)
+        .where(eq(organizations.id, "org-1"));
+      statusDuringProvisioning = organization?.status;
     });
 
     await approveOrganization({ organizationId: "org-1", approver: superAdmin }, fakeProvisioner);
 
-    expect(callOrder).toEqual(["provision", "update"]);
+    expect(statusDuringProvisioning).toBe("PENDING");
   });
 
   it("locks the organization before reading its status, so concurrent approvals run one at a time", async () => {
-    mockPrisma.organization.findUnique.mockResolvedValue(pendingOrganization);
-    const callOrder: string[] = [];
-    mockPrisma.$executeRaw.mockImplementation(async (sql: TemplateStringsArray) => {
-      callOrder.push(sql.join("?"));
-      return 1;
-    });
-    mockPrisma.organization.findUnique.mockImplementation(async () => {
-      callOrder.push("read");
-      return pendingOrganization;
+    let isLockHeldDuringProvisioning: boolean | undefined;
+    fakeProvisioner.provision.mockImplementation(async (_schemaName, tx) => {
+      isLockHeldDuringProvisioning = await holdsApprovalLock(tx, "org-1");
     });
 
     await approveOrganization({ organizationId: "org-1", approver: superAdmin }, fakeProvisioner);
 
-    expect(callOrder[0]).toContain("pg_advisory_xact_lock");
-    expect(callOrder[1]).toBe("read");
-    expect(mockPrisma.$executeRaw).toHaveBeenCalledWith(expect.anything(), "org-1");
+    expect(isLockHeldDuringProvisioning).toBe(true);
+    // Transaction-scoped: released once approval commits.
+    await expect(holdsApprovalLock(testDb, "org-1")).resolves.toBe(false);
   });
 
   it("commits the provisioner's cleanup, then rethrows, when provisioning fails", async () => {
-    mockPrisma.organization.findUnique.mockResolvedValue(pendingOrganization);
-    fakeProvisioner.provision = vi.fn().mockRejectedValue(new Error("migrate deploy failed"));
+    // Stands in for the real provisioner's DROP SCHEMA: a write made through
+    // the approval transaction after provisioning failed.
+    fakeProvisioner.provision.mockImplementation(async (schemaName, tx) => {
+      await tx.execute(sql`CREATE SCHEMA ${sql.identifier(schemaName)}`);
+      throw new Error("tenant migration failed");
+    });
 
     await expect(
       approveOrganization({ organizationId: "org-1", approver: superAdmin }, fakeProvisioner),
-    ).rejects.toThrow("migrate deploy failed");
-    // A rejected transaction callback would roll back the dropped schema.
-    await expect(mockPrisma.$transaction.mock.results[0]?.value).resolves.toBeDefined();
+    ).rejects.toThrow("tenant migration failed");
+    // A rolled-back transaction would have undone it.
+    await expect(schemaExists(testDb, SCHEMA_NAME)).resolves.toBe(true);
   });
 
   it("leaves the organization pending when provisioning fails", async () => {
-    mockPrisma.organization.findUnique.mockResolvedValue(pendingOrganization);
-    fakeProvisioner.provision = vi.fn().mockRejectedValue(new Error("migrate deploy failed"));
+    fakeProvisioner.provision.mockRejectedValue(new Error("tenant migration failed"));
 
     await expect(
       approveOrganization({ organizationId: "org-1", approver: superAdmin }, fakeProvisioner),
-    ).rejects.toThrow("migrate deploy failed");
-    expect(mockPrisma.organization.updateMany).not.toHaveBeenCalled();
+    ).rejects.toThrow("tenant migration failed");
+    await expect(readOrganization()).resolves.toMatchObject({
+      status: "PENDING",
+      approvedAt: null,
+    });
   });
 
   it("throws when the approver is not a super-admin", async () => {
@@ -126,13 +133,11 @@ describe("approveOrganization", () => {
         fakeProvisioner,
       ),
     ).rejects.toBeInstanceOf(ApprovalNotPermittedError);
-    expect(mockPrisma.organization.findUnique).not.toHaveBeenCalled();
     expect(fakeProvisioner.provision).not.toHaveBeenCalled();
+    await expect(readOrganization()).resolves.toMatchObject({ status: "PENDING" });
   });
 
   it("throws when the organization does not exist", async () => {
-    mockPrisma.organization.findUnique.mockResolvedValue(null);
-
     await expect(
       approveOrganization({ organizationId: "missing", approver: superAdmin }, fakeProvisioner),
     ).rejects.toBeInstanceOf(OrganizationNotFoundError);
@@ -140,10 +145,10 @@ describe("approveOrganization", () => {
   });
 
   it("throws when the organization is already approved", async () => {
-    mockPrisma.organization.findUnique.mockResolvedValue({
-      ...pendingOrganization,
-      status: "APPROVED",
-    });
+    await testDb
+      .update(organizations)
+      .set({ status: "APPROVED" })
+      .where(eq(organizations.id, "org-1"));
 
     await expect(
       approveOrganization({ organizationId: "org-1", approver: superAdmin }, fakeProvisioner),
@@ -152,8 +157,14 @@ describe("approveOrganization", () => {
   });
 
   it("throws when a concurrent approval flipped the status first", async () => {
-    mockPrisma.organization.findUnique.mockResolvedValue(pendingOrganization);
-    mockPrisma.organization.updateMany.mockResolvedValue({ count: 0 });
+    // Stands in for another approval committing between this one's status
+    // read and its conditional update.
+    fakeProvisioner.provision.mockImplementation(async (_schemaName, tx) => {
+      await tx
+        .update(organizations)
+        .set({ status: "APPROVED" })
+        .where(eq(organizations.id, "org-1"));
+    });
 
     await expect(
       approveOrganization({ organizationId: "org-1", approver: superAdmin }, fakeProvisioner),

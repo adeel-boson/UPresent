@@ -1,5 +1,13 @@
 # Tenant Schema Pattern with Prisma — Research Notes
 
+> **Status: superseded.** This note compared ways to do schema-per-tenant with Prisma. We moved
+> to Drizzle instead ([ADR-0009](../adr/0009-drizzle-orm-tenant-table-factory.md)), which keeps
+> the core of the recommendation below: one shared pool, tenant-only migrations applied by an
+> in-process runner with a per-schema history table and a transaction-scoped lock, and a
+> `withTenant` helper. Instead of a Prisma client per tenant, tenant tables are built per schema
+> from one definition. Sections 1–4 describe Prisma and are kept as history; section 5
+> (pooling and serverless constraints) still applies.
+
 Purpose: primary-source findings to decide how UPresent defines, migrates, and queries per-tenant
 Postgres schemas (ADR-0001) with Prisma (ADR-0003 deferred this), on Vercel serverless. Sections
 1–5 are factual and cited. Sections 6–8 compare the options, make one recommendation, and sketch
