@@ -3,8 +3,13 @@ import { eq } from "drizzle-orm";
 import { hashPassword } from "@/lib/auth/password";
 import { db } from "@/lib/db/client";
 import { isUniqueViolation } from "@/lib/db/errors";
-import { organizations, users, type InstitutionType } from "@/lib/db/schema";
-import { generateSchemaName } from "@/lib/organizations/schema-name";
+import {
+  organizations,
+  USER_EMAIL_UNIQUE_INDEX,
+  users,
+  type InstitutionType,
+} from "@/lib/db/schema";
+import { generateSchemaName } from "@/lib/db/schema-name";
 
 export type SignUpOrganizationInput = {
   organizationName: string;
@@ -61,7 +66,7 @@ export async function signUpOrganization(input: SignUpOrganizationInput): Promis
     // The check above runs under READ COMMITTED, so two concurrent signups
     // with one email can both pass it; the unique index on User.email then
     // rejects the second insert.
-    if (isUniqueViolation(error)) {
+    if (isUniqueViolation(error, USER_EMAIL_UNIQUE_INDEX)) {
       throw new EmailAlreadyInUseError(orgAdminEmail);
     }
     throw error;

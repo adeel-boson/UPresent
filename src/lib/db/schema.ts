@@ -46,6 +46,10 @@ export const organizations = pgTable(
   (table) => [uniqueIndex("Organization_schemaName_key").on(table.schemaName)],
 );
 
+// Named so signup can tell a duplicate email apart from any other unique
+// violation (see isUniqueViolation).
+export const USER_EMAIL_UNIQUE_INDEX = "User_email_key";
+
 export const users = pgTable(
   "User",
   {
@@ -67,7 +71,7 @@ export const users = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [
-    uniqueIndex("User_email_key").on(table.email),
+    uniqueIndex(USER_EMAIL_UNIQUE_INDEX).on(table.email),
     foreignKey({
       name: "User_organizationId_fkey",
       columns: [table.organizationId],

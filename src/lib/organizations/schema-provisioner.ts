@@ -5,7 +5,7 @@ import {
   type MigratableDatabase,
   type TenantMigrationRunner,
 } from "@/lib/db/migrate";
-import { isGeneratedSchemaName } from "@/lib/organizations/schema-name";
+import { isGeneratedSchemaName } from "@/lib/db/schema-name";
 
 export interface SchemaProvisioner {
   // `tx` is the approval transaction (see approve.ts), so the schema is

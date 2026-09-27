@@ -4,7 +4,7 @@ import { pgSchema, type PgSchema } from "drizzle-orm/pg-core";
 import { pool } from "@/lib/db/client";
 import { defineTenantTables } from "@/lib/db/tenant-schema";
 import type { Organization } from "@/lib/db/schema";
-import { isGeneratedSchemaName } from "@/lib/organizations/schema-name";
+import { isGeneratedSchemaName } from "@/lib/db/schema-name";
 
 // How many Organizations' table sets one server instance keeps built. Each
 // is a few plain objects over the shared pool, so this only bounds memory.

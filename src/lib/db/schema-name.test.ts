@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { generateSchemaName, isGeneratedSchemaName } from "@/lib/organizations/schema-name";
+import { generateSchemaName, isGeneratedSchemaName } from "@/lib/db/schema-name";
 
 describe("generateSchemaName", () => {
   it("generates a name that passes its own check", () => {

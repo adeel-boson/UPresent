@@ -12,7 +12,7 @@ import {
 
 import { organizations } from "@/lib/db/schema";
 import { TENANT_SCHEMA_PLACEHOLDER } from "@/lib/db/tenant-schema";
-import { isGeneratedSchemaName } from "@/lib/organizations/schema-name";
+import { isGeneratedSchemaName } from "@/lib/db/schema-name";
 
 // No `server-only` here: the `db:migrate:tenants` script runs this under
 // tsx, outside Next. It takes its database as an argument instead.
