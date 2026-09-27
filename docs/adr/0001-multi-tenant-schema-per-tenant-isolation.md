@@ -5,4 +5,4 @@ UPresent is multi-tenant SaaS (one `Organization` = one tenant: a school or coll
 ## Consequences
 
 - New tenant onboarding requires provisioning (creating + migrating) a dedicated schema, not just inserting a row — see [ADR-0007](./0007-gated-self-serve-onboarding-sync-provisioning.md).
-- The ORM/data layer must support targeting a schema dynamically per request (see [ADR-0003](./0003-prisma-orm-tenant-pattern-deferred.md)).
+- The ORM/data layer must support targeting a schema dynamically per request (see [ADR-0009](./0009-drizzle-orm-tenant-table-factory.md), which superseded [ADR-0003](./0003-prisma-orm-tenant-pattern-deferred.md)).
