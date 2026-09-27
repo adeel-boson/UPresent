@@ -1,81 +1,57 @@
-import { exec } from "node:child_process";
-import { promisify } from "node:util";
+import { sql } from "drizzle-orm";
 
+import {
+  migrateTenantSchema,
+  type MigratableDatabase,
+  type TenantMigrationRunner,
+} from "@/lib/db/migrate";
 import { isGeneratedSchemaName } from "@/lib/organizations/schema-name";
 
-const execAsync = promisify(exec);
-
-// Long enough for the full migration history on a cold database, short
-// enough that a hung migration fails the approval instead of holding the
-// request open indefinitely.
-export const MIGRATE_TIMEOUT_MS = 120_000;
-
-// Applies the app's migrations to the database/schema the URL points at.
-export type MigrationRunner = (databaseUrl: string) => Promise<void>;
-
-// The SQL the provisioner runs itself. Approval passes its transaction
-// client here so the cleanup runs on the connection that holds the
-// Organization's advisory lock (see approve.ts). Kept structural so
-// Prisma.TransactionClient satisfies it and tests can pass a plain fake.
-export interface ProvisioningDatabase {
-  $executeRawUnsafe(query: string): Promise<number>;
-}
-
 export interface SchemaProvisioner {
-  provision(schemaName: string, db: ProvisioningDatabase): Promise<void>;
+  // `tx` is the approval transaction (see approve.ts), so the schema is
+  // created and migrated on the connection that holds the Organization's
+  // advisory lock, and commits or rolls back with the status change.
+  provision(schemaName: string, tx: MigratableDatabase): Promise<void>;
 }
 
-// --no-install: run the project's pinned Prisma CLI, never download
-// whatever version is latest on npm at request time.
-export const runPrismaMigrateDeploy: MigrationRunner = async (databaseUrl) => {
-  await execAsync("npx --no-install prisma migrate deploy", {
-    env: { ...process.env, DATABASE_URL: databaseUrl },
-    timeout: MIGRATE_TIMEOUT_MS,
-  });
-};
-
-// Provisions a tenant's dedicated Postgres schema by re-running the app's
-// existing Prisma migrations against it (see ADR-0001, ADR-0003). Postgres'
-// `schema` connection parameter points a `migrate deploy` run at that schema
-// instead of the default one, so this reuses the same migration history the
-// shared schema is built from rather than inventing a second migration
-// format for tenant-only tables.
-export function createPrismaSchemaProvisioner(
-  runMigrations: MigrationRunner = runPrismaMigrateDeploy,
+// Provisions a tenant's dedicated Postgres schema: creates it and applies the
+// tenant migrations in-process (ADR-0001, ADR-0009). No CLI or child process,
+// so it runs the same on a laptop and in a serverless function. The runner is
+// injectable so tests can make migrating fail.
+export function createSchemaProvisioner(
+  runMigrations: TenantMigrationRunner = migrateTenantSchema,
 ): SchemaProvisioner {
   return {
-    async provision(schemaName: string, db: ProvisioningDatabase): Promise<void> {
-      // The name is interpolated into SQL and a connection string, so refuse
-      // anything that isn't our own generateSchemaName() output (`org_` + 32
-      // hex), even if the stored value was tampered with.
+    async provision(schemaName: string, tx: MigratableDatabase): Promise<void> {
+      // The name is interpolated into SQL, so refuse anything that isn't our
+      // own generateSchemaName() output (`org_` + 32 hex), even if the stored
+      // value was tampered with.
       if (!isGeneratedSchemaName(schemaName)) {
         throw new Error(`Refusing to provision invalid schema name ${JSON.stringify(schemaName)}.`);
       }
-
-      const baseUrl = process.env.DATABASE_URL;
-      if (!baseUrl) {
-        throw new Error("DATABASE_URL is not set");
-      }
-
-      // `migrate deploy` creates the schema itself when it doesn't exist yet.
-      const tenantUrl = new URL(baseUrl);
-      tenantUrl.searchParams.set("schema", schemaName);
+      const schema = sql.identifier(schemaName);
 
       try {
-        await runMigrations(tenantUrl.toString());
+        // A savepoint, so a failure here leaves the approval transaction
+        // usable for the cleanup below instead of aborted. IF NOT EXISTS
+        // resumes a schema an earlier attempt left behind; the runner only
+        // applies what that schema is missing.
+        await tx.transaction(async (savepoint) => {
+          await savepoint.execute(sql`CREATE SCHEMA IF NOT EXISTS ${schema}`);
+          await runMigrations(savepoint, schemaName);
+        });
       } catch (error) {
-        // A migration that fails partway is recorded as failed in the
-        // schema's `_prisma_migrations`, and every later `migrate deploy`
-        // then refuses to run (P3009), so a retry could never succeed. The
-        // caller only provisions a still-PENDING Organization, whose schema
-        // holds no tenant data yet, so dropping it loses nothing and lets the
-        // next attempt start clean. Interpolation is safe: the name was
-        // validated above.
-        await db.$executeRawUnsafe(`DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`);
+        // Rolling back the savepoint already undoes whatever this attempt
+        // created. Dropping as well clears a half-migrated schema left by an
+        // earlier attempt, so the next approval starts clean. The caller only
+        // provisions a still-PENDING Organization, whose schema holds no
+        // tenant data yet, so dropping it loses nothing. The name is a quoted
+        // identifier, validated above.
+        await tx.execute(sql`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
         throw error;
       }
     },
   };
 }
 
-export const prismaSchemaProvisioner: SchemaProvisioner = createPrismaSchemaProvisioner();
+export const schemaProvisioner: SchemaProvisioner = createSchemaProvisioner();
