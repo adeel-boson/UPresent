@@ -74,7 +74,11 @@ describe("migrateTenantSchema", () => {
       "ProbeGroup",
       "__drizzle_migrations",
     ]);
-    await expect(tablesIn("public")).resolves.toEqual(["Organization", "User"]);
+    await expect(tablesIn("public")).resolves.toEqual([
+      "EmailVerificationToken",
+      "Organization",
+      "User",
+    ]);
     const enums = await db.execute<{ schema: string }>(sql`
       SELECT n.nspname AS "schema" FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace
       WHERE t.typname = 'ProbeKind'
@@ -137,7 +141,11 @@ describe("migrateTenantSchema", () => {
     await expect(migrateTenantSchema(db, "public", PROBE_MIGRATIONS)).rejects.toThrow(
       "Refusing to migrate invalid schema name",
     );
-    await expect(tablesIn("public")).resolves.toEqual(["Organization", "User"]);
+    await expect(tablesIn("public")).resolves.toEqual([
+      "EmailVerificationToken",
+      "Organization",
+      "User",
+    ]);
   });
 
   it("applies the app's real tenant migrations, leaving only the history table", async () => {

@@ -66,7 +66,8 @@ src/
 │   └── <feature>/             App components shared by 2+ routes (forms/, navigation/, …)
 ├── lib/
 │   ├── <domain>/              Domain modules: organizations/, groups/, attendance/, …
-│   ├── auth/                  Auth.js config, password hashing, guards
+│   ├── auth/                  Auth.js config, password hashing, email verification, guards
+│   ├── email/                 EmailSender seam and its Resend adapter
 │   └── db/
 │       ├── client.ts          The one pg Pool + Drizzle instance (server-only)
 │       ├── schema.ts          Shared tables and enums (`public`); types and enum values
@@ -256,7 +257,7 @@ Stack: Vitest, `node` environment, tests colocated as `src/**/*.test.ts`. For te
   ```
 
 - **Tenant code is tested through `withTenant` against real tenant schemas.** [`tenant.test.ts`](src/lib/db/tenant.test.ts) shows how: migrate two `org_…` schemas with the tenant runner, then assert that data written through one Organization's scope is invisible to the other's.
-- **Mock only at system boundaries**: injected seams (`SchemaProvisioner`, `TenantMigrationRunner`), `next/navigation`, `@/lib/auth`, and the clock. To force a race or a failure the database can't produce on one connection, spy on the one call at that seam (e.g. the in-transaction lookup in `signup.test.ts`), and let the rest run for real. Never mock our own domain modules from inside their own tests. Use `vi.hoisted` + `vi.mock` as in the existing tests.
+- **Mock only at system boundaries**: injected seams (`SchemaProvisioner`, `TenantMigrationRunner`, `EmailSender`), `next/navigation`, `@/lib/auth`, and the clock. To force a race or a failure the database can't produce on one connection, spy on the one call at that seam (e.g. the in-transaction lookup in `signup.test.ts`), and let the rest run for real. Never mock our own domain modules from inside their own tests. Use `vi.hoisted` + `vi.mock` as in the existing tests.
 - **Name tests as behaviors in domain language**, e.g. `"throws when the organization is already approved"`.
 - **Take expected values from the spec or literals.** Never recompute them the way the code does.
 - **Fix bugs test-first.** Write the failing test, then the fix.
