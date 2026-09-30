@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 
+import { PASSWORD_MIN_LENGTH, passwordSchema } from "@/lib/auth/password-rule";
 import { institutionTypeEnum } from "@/lib/db/schema";
 import { signUpOrganization } from "@/lib/organizations/signup";
 
@@ -22,7 +23,7 @@ const signupSchema = z.object({
   organizationName: z.string().trim().min(1),
   institutionType: z.enum(institutionTypeEnum.enumValues),
   orgAdminEmail: z.string().trim().toLowerCase().pipe(z.email()),
-  orgAdminPassword: z.string().min(8),
+  orgAdminPassword: passwordSchema,
 });
 
 function readSubmittedFields(formData: FormData): SignupFields {
@@ -42,7 +43,7 @@ export async function signup(_prevState: SignupState, formData: FormData): Promi
   if (!parsed.success) {
     return {
       status: "error",
-      error: "Fill in every field with a valid email and a password of at least 8 characters.",
+      error: `Fill in every field with a valid email and a password of at least ${PASSWORD_MIN_LENGTH} characters.`,
       fields: readSubmittedFields(formData),
     };
   }

@@ -1,6 +1,6 @@
 import { and, eq, isNull } from "drizzle-orm";
 
-import { hashVerificationToken } from "@/lib/auth/email-verification";
+import { hashEmailLinkToken } from "@/lib/auth/email-link-token";
 import { db } from "@/lib/db/client";
 import { emailVerificationTokens, users } from "@/lib/db/schema";
 
@@ -25,7 +25,7 @@ export async function verifyEmail({ token }: VerifyEmailInput): Promise<void> {
   await db.transaction(async (tx) => {
     const [used] = await tx
       .delete(emailVerificationTokens)
-      .where(eq(emailVerificationTokens.tokenHash, hashVerificationToken(token)))
+      .where(eq(emailVerificationTokens.tokenHash, hashEmailLinkToken(token)))
       .returning({
         userId: emailVerificationTokens.userId,
         expiresAt: emailVerificationTokens.expiresAt,
