@@ -82,6 +82,27 @@ export const users = pgTable(
   ],
 );
 
+// Links sent to prove a User owns their email (ADR-0004). Only a SHA-256 hash
+// of the token is stored, so a leaked table can't be used to verify anyone.
+// Rows are deleted when used, and with their User.
+export const emailVerificationTokens = pgTable(
+  "EmailVerificationToken",
+  {
+    tokenHash: text("tokenHash").primaryKey(),
+    userId: text("userId").notNull(),
+    expiresAt: timestampColumn("expiresAt").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      name: "EmailVerificationToken_userId_fkey",
+      columns: [table.userId],
+      foreignColumns: [users.id],
+    })
+      .onDelete("cascade")
+      .onUpdate("cascade"),
+  ],
+);
+
 export const organizationsRelations = relations(organizations, ({ many }) => ({
   users: many(users),
 }));

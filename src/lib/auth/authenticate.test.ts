@@ -32,7 +32,10 @@ describe("authenticateUser", () => {
       .values({ id: "user-1", email: EMAIL, hashedPassword, role: "SUPER_ADMIN" });
   }
 
-  async function createOrgAdmin(status: OrganizationStatus) {
+  async function createOrgAdmin(
+    status: OrganizationStatus,
+    { isEmailVerified = true }: { isEmailVerified?: boolean } = {},
+  ) {
     await testDb.insert(organizations).values({
       id: "org-1",
       name: "Springfield Elementary",
@@ -46,6 +49,7 @@ describe("authenticateUser", () => {
       hashedPassword,
       role: "ORG_ADMIN",
       organizationId: "org-1",
+      emailVerified: isEmailVerified ? new Date("2026-01-01T00:00:00Z") : null,
     });
   }
 
@@ -59,7 +63,7 @@ describe("authenticateUser", () => {
     });
   });
 
-  it("signs in an org-admin whose organization is approved", async () => {
+  it("signs in an org-admin whose email is verified and organization is approved", async () => {
     await createOrgAdmin("APPROVED");
 
     await expect(authenticateUser({ email: EMAIL, password: PASSWORD })).resolves.toMatchObject({
@@ -67,8 +71,14 @@ describe("authenticateUser", () => {
     });
   });
 
-  it("rejects an org-admin whose organization is still pending", async () => {
+  it("rejects an org-admin whose organization is still pending, even with a verified email", async () => {
     await createOrgAdmin("PENDING");
+
+    await expect(authenticateUser({ email: EMAIL, password: PASSWORD })).resolves.toBeNull();
+  });
+
+  it("rejects an org-admin whose email is unverified, even if the organization is approved", async () => {
+    await createOrgAdmin("APPROVED", { isEmailVerified: false });
 
     await expect(authenticateUser({ email: EMAIL, password: PASSWORD })).resolves.toBeNull();
   });

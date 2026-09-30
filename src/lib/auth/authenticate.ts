@@ -22,14 +22,16 @@ export type AuthenticatedUser = {
 const DUMMY_HASH = "$2b$12$aZ1A.CgiGM1Tf8QiIPvayeMDQqkMSwzoTc80lYCqhkN8cKTrvtrpy";
 
 // Returns the user a login may sign in as, or null. A user tied to an
-// Organization can sign in only once that Organization is approved (ADR-0007);
-// super-admins belong to no Organization.
+// Organization can sign in only once they have verified their email (ADR-0004)
+// and that Organization is approved (ADR-0007); super-admins belong to no
+// Organization. Every rejection is the same null, so the login form's
+// generic message never reveals which condition failed.
 export async function authenticateUser(
   input: AuthenticateInput,
 ): Promise<AuthenticatedUser | null> {
   const user = await db.query.users.findFirst({
     where: eq(users.email, input.email.trim().toLowerCase()),
-    columns: { id: true, email: true, role: true, hashedPassword: true },
+    columns: { id: true, email: true, role: true, hashedPassword: true, emailVerified: true },
     with: { organization: { columns: { status: true } } },
   });
 
@@ -38,7 +40,7 @@ export async function authenticateUser(
     return null;
   }
 
-  if (user.organization && user.organization.status !== "APPROVED") {
+  if (user.organization && (user.organization.status !== "APPROVED" || !user.emailVerified)) {
     return null;
   }
 
