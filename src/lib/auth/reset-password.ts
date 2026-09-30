@@ -1,6 +1,6 @@
 import { and, eq, isNull } from "drizzle-orm";
 
-import { hashEmailLinkToken } from "@/lib/auth/email-link-token";
+import { redeemEmailLinkToken } from "@/lib/auth/email-link-token";
 import { hashPassword } from "@/lib/auth/password";
 import { formatRequestContext, type RequestContext } from "@/lib/auth/request-context";
 import { db } from "@/lib/db/client";
@@ -37,26 +37,20 @@ export async function resetPassword(
   const now = new Date();
 
   await db.transaction(async (tx) => {
-    // Deleting the row and reading it back in one statement makes the token
-    // single-use: two concurrent resets with it can't both succeed.
-    const [used] = await tx
-      .delete(passwordResetTokens)
-      .where(eq(passwordResetTokens.tokenHash, hashEmailLinkToken(input.token)))
-      .returning({
-        userId: passwordResetTokens.userId,
-        expiresAt: passwordResetTokens.expiresAt,
-      });
-    if (!used || used.expiresAt <= now) {
+    // Single-use, and it invalidates the User's other reset links, any of
+    // which could otherwise undo this reset.
+    const userId = await redeemEmailLinkToken(tx, passwordResetTokens, input.token, now);
+    if (!userId) {
       throw new InvalidPasswordResetTokenError();
     }
 
     const [user] = await tx
       .update(users)
       .set({ hashedPassword })
-      .where(eq(users.id, used.userId))
+      .where(eq(users.id, userId))
       .returning({ email: users.email });
     if (!user) {
-      throw new Error(`Resetting the password of User ${used.userId} updated no row.`);
+      throw new Error(`Resetting the password of User ${userId} updated no row.`);
     }
     // Opening the link proves the User controls the inbox, which is what
     // verification proves. Conditional, so an earlier verification keeps its
@@ -64,9 +58,7 @@ export async function resetPassword(
     await tx
       .update(users)
       .set({ emailVerified: now })
-      .where(and(eq(users.id, used.userId), isNull(users.emailVerified)));
-    // Any other outstanding link could otherwise undo this reset.
-    await tx.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, used.userId));
+      .where(and(eq(users.id, userId), isNull(users.emailVerified)));
 
     // Sent inside the transaction: if the owner can't be told their password
     // changed, it doesn't change, and the link still works for a retry.

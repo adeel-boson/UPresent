@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { PASSWORD_MIN_LENGTH, passwordSchema } from "@/lib/auth/password-rule";
-import { readRequestContext } from "@/lib/auth/request-context";
+import { readRequestContext } from "@/app/(auth)/_lib/read-request-context";
 import { InvalidPasswordResetTokenError, resetPassword } from "@/lib/auth/reset-password";
 
 export type SetNewPasswordState = {

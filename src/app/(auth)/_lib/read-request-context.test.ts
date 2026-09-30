@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { formatRequestContext, readRequestContext } from "@/lib/auth/request-context";
+import { readRequestContext } from "@/app/(auth)/_lib/read-request-context";
+import { formatRequestContext } from "@/lib/auth/request-context";
 
 const CHROME_ON_WINDOWS =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
@@ -11,7 +12,7 @@ function describeRequest(headers: Record<string, string>): string {
   return formatRequestContext(readRequestContext(new Headers(headers)));
 }
 
-describe("request context", () => {
+describe("readRequestContext", () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-09-29T14:05:42Z"));

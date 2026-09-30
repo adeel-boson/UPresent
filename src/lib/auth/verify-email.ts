@@ -1,6 +1,6 @@
 import { and, eq, isNull } from "drizzle-orm";
 
-import { hashEmailLinkToken } from "@/lib/auth/email-link-token";
+import { redeemEmailLinkToken } from "@/lib/auth/email-link-token";
 import { db } from "@/lib/db/client";
 import { emailVerificationTokens, users } from "@/lib/db/schema";
 
@@ -18,19 +18,13 @@ export class InvalidVerificationTokenError extends Error {
 }
 
 // Marks the email of the User a verification token was issued to as verified
-// (ADR-0004). Tokens are single-use: deleting the row and reading it back in
-// one statement means two concurrent uses can't both succeed.
+// (ADR-0004). The token is single-use, and redeeming it invalidates the User's
+// other verification tokens, which have nothing left to prove.
 export async function verifyEmail({ token }: VerifyEmailInput): Promise<void> {
   const now = new Date();
   await db.transaction(async (tx) => {
-    const [used] = await tx
-      .delete(emailVerificationTokens)
-      .where(eq(emailVerificationTokens.tokenHash, hashEmailLinkToken(token)))
-      .returning({
-        userId: emailVerificationTokens.userId,
-        expiresAt: emailVerificationTokens.expiresAt,
-      });
-    if (!used || used.expiresAt <= now) {
+    const userId = await redeemEmailLinkToken(tx, emailVerificationTokens, token, now);
+    if (!userId) {
       throw new InvalidVerificationTokenError();
     }
 
@@ -38,8 +32,6 @@ export async function verifyEmail({ token }: VerifyEmailInput): Promise<void> {
     await tx
       .update(users)
       .set({ emailVerified: now })
-      .where(and(eq(users.id, used.userId), isNull(users.emailVerified)));
-    // The user's other tokens have nothing left to prove.
-    await tx.delete(emailVerificationTokens).where(eq(emailVerificationTokens.userId, used.userId));
+      .where(and(eq(users.id, userId), isNull(users.emailVerified)));
   });
 }

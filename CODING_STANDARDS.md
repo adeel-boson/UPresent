@@ -57,6 +57,7 @@ src/
 │   ├── layout.tsx             Root layout: <html>, fonts, the page-title template
 │   ├── (auth)/layout.tsx      Signed-out shell (login, signup, password reset): one centered card
 │   ├── (app)/layout.tsx       Signed-in shell (dashboard, admin/…): header + content
+│   ├── (group)/_lib/          Route-layer helpers shared by a group's routes (may call Next APIs)
 │   └── (group)/<route>/       Route groups don't change the URL (/login, not /(auth)/login)
 │       ├── page.tsx           Thin: guard → call domain → render
 │       ├── actions.ts         Server actions for this route ("use server")

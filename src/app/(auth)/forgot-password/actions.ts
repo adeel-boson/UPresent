@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { after } from "next/server";
 import { z } from "zod";
 
-import { readRequestContext } from "@/lib/auth/request-context";
+import { readRequestContext } from "@/app/(auth)/_lib/read-request-context";
 import { requestPasswordReset } from "@/lib/auth/request-password-reset";
 
 export type ForgotPasswordState =
