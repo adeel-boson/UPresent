@@ -14,7 +14,7 @@ const forgotPasswordSchema = z.object({
   email: z.string().trim().toLowerCase().pipe(z.email()),
 });
 
-export async function forgotPassword(
+export async function sendPasswordResetLink(
   _prevState: ForgotPasswordState,
   formData: FormData,
 ): Promise<ForgotPasswordState> {

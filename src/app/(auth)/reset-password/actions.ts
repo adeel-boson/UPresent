@@ -29,12 +29,13 @@ export async function setNewPassword(
   if (parsed.data.password !== parsed.data.confirmPassword) {
     return { error: "The two passwords don't match." };
   }
+  const requestContext = readRequestContext(await headers());
 
   try {
     await resetPassword({
       token: parsed.data.token,
       newPassword: parsed.data.password,
-      requestContext: readRequestContext(await headers()),
+      requestContext,
     });
   } catch (error) {
     if (error instanceof InvalidPasswordResetTokenError) {

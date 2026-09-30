@@ -2,7 +2,10 @@
 
 import { useActionState } from "react";
 
-import { forgotPassword, type ForgotPasswordState } from "@/app/(auth)/forgot-password/actions";
+import {
+  sendPasswordResetLink,
+  type ForgotPasswordState,
+} from "@/app/(auth)/forgot-password/actions";
 import { FormErrorAlert } from "@/components/forms/form-error-alert";
 import { TextLink } from "@/components/navigation/text-link";
 import { Button } from "@/components/ui/button";
@@ -20,7 +23,7 @@ import { Label } from "@/components/ui/label";
 const initialState: ForgotPasswordState = { status: "idle" };
 
 export function ForgotPasswordForm() {
-  const [state, formAction, pending] = useActionState(forgotPassword, initialState);
+  const [state, formAction, pending] = useActionState(sendPasswordResetLink, initialState);
 
   if (state.status === "submitted") {
     return (
