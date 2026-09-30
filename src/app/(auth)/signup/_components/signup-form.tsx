@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PASSWORD_MIN_LENGTH } from "@/lib/auth/password-rule";
 import { INSTITUTION_TYPE_LABELS } from "@/lib/organizations/institution-type";
 
 const initialState: SignupState = { status: "idle" };
@@ -108,7 +109,7 @@ export function SignupForm() {
               name="orgAdminPassword"
               type="password"
               required
-              minLength={8}
+              minLength={PASSWORD_MIN_LENGTH}
               autoComplete="new-password"
             />
           </div>

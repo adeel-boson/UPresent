@@ -55,8 +55,9 @@ Run `npm run format` to fix formatting and `npx eslint --fix` to fix auto-fixabl
 src/
 ├── app/                       Routes: pages, layouts, server actions, route handlers
 │   ├── layout.tsx             Root layout: <html>, fonts, the page-title template
-│   ├── (auth)/layout.tsx      Signed-out shell (login, signup): one centered card
+│   ├── (auth)/layout.tsx      Signed-out shell (login, signup, password reset): one centered card
 │   ├── (app)/layout.tsx       Signed-in shell (dashboard, admin/…): header + content
+│   ├── (group)/_lib/          Route-layer helpers shared by a group's routes (may call Next APIs)
 │   └── (group)/<route>/       Route groups don't change the URL (/login, not /(auth)/login)
 │       ├── page.tsx           Thin: guard → call domain → render
 │       ├── actions.ts         Server actions for this route ("use server")
@@ -66,7 +67,7 @@ src/
 │   └── <feature>/             App components shared by 2+ routes (forms/, navigation/, …)
 ├── lib/
 │   ├── <domain>/              Domain modules: organizations/, groups/, attendance/, …
-│   ├── auth/                  Auth.js config, password hashing, email verification, guards
+│   ├── auth/                  Auth.js config, password hashing and rule, emailed links, guards
 │   ├── email/                 EmailSender seam and its Resend adapter
 │   └── db/
 │       ├── client.ts          The one pg Pool + Drizzle instance (server-only)

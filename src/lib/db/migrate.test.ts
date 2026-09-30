@@ -77,6 +77,7 @@ describe("migrateTenantSchema", () => {
     await expect(tablesIn("public")).resolves.toEqual([
       "EmailVerificationToken",
       "Organization",
+      "PasswordResetToken",
       "User",
     ]);
     const enums = await db.execute<{ schema: string }>(sql`
@@ -144,6 +145,7 @@ describe("migrateTenantSchema", () => {
     await expect(tablesIn("public")).resolves.toEqual([
       "EmailVerificationToken",
       "Organization",
+      "PasswordResetToken",
       "User",
     ]);
   });

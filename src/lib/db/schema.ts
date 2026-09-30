@@ -103,6 +103,27 @@ export const emailVerificationTokens = pgTable(
   ],
 );
 
+// Links sent to set a new password. Kept apart from EmailVerificationToken so a
+// verification link can never be used to reset a password. Stored and deleted
+// the same way: a SHA-256 hash of the token, removed when used or with its User.
+export const passwordResetTokens = pgTable(
+  "PasswordResetToken",
+  {
+    tokenHash: text("tokenHash").primaryKey(),
+    userId: text("userId").notNull(),
+    expiresAt: timestampColumn("expiresAt").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      name: "PasswordResetToken_userId_fkey",
+      columns: [table.userId],
+      foreignColumns: [users.id],
+    })
+      .onDelete("cascade")
+      .onUpdate("cascade"),
+  ],
+);
+
 export const organizationsRelations = relations(organizations, ({ many }) => ({
   users: many(users),
 }));
