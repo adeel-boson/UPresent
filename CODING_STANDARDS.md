@@ -73,7 +73,8 @@ src/
 │       ├── tenant-schema.ts   Per-Organization tables, defined against any schema
 │       ├── tenant.ts          withTenant: the only way to reach tenant tables
 │       ├── migrate.ts         Tenant migration runner and rollout
-│       └── testing.ts         PGlite test database (tests only)
+│       ├── testing.ts         PGlite test database (tests only)
+│       └── testing-global-setup.ts  Migrates the test database template once per run
 ├── types/                     Ambient type augmentations only (e.g. next-auth.d.ts)
 └── proxy.ts                   Request-level redirects (Next 16's replacement for middleware)
 db/

@@ -1,8 +1,10 @@
+import { openAsBlob } from "node:fs";
 import path from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { sql } from "drizzle-orm";
 import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
+import { inject } from "vitest";
 
 import * as schema from "@/lib/db/schema";
 
@@ -20,10 +22,32 @@ export type TestDatabase = PgliteDatabase<typeof schema> & { $client: PGlite };
 
 export const SHARED_MIGRATIONS_FOLDER = path.join(process.cwd(), "db", "migrations", "shared");
 
+declare module "vitest" {
+  export interface ProvidedContext {
+    // Path to a dump of a migrated PGlite data directory, written once per
+    // run by testing-global-setup.ts.
+    testDatabaseTemplate: string;
+  }
+}
+
+// Starts from the migrated template instead of running initdb and the
+// migrations again: about 5x cheaper per test file, which keeps setup well
+// inside the hook timeout when every test file boots a database in parallel.
 export async function createTestDatabase(): Promise<TestDatabase> {
+  const template = await openAsBlob(inject("testDatabaseTemplate"));
+  return drizzle({ client: new PGlite({ loadDataDir: template }), schema });
+}
+
+// Builds the template that createTestDatabase starts from, as a data
+// directory tarball.
+export async function dumpMigratedTestDatabase(): Promise<Blob> {
   const db = drizzle({ client: new PGlite(), schema });
-  await migrate(db, { migrationsFolder: SHARED_MIGRATIONS_FOLDER });
-  return db;
+  try {
+    await migrate(db, { migrationsFolder: SHARED_MIGRATIONS_FOLDER });
+    return await db.$client.dumpDataDir("none");
+  } finally {
+    await db.$client.close();
+  }
 }
 
 // Empties the shared tables and drops every tenant schema between tests.
