@@ -23,8 +23,8 @@ import {
   readToken,
   recordingSender,
   seedOrganizations,
-  shelbyvilleAdmin,
-  springfieldAdmin,
+  shelbyvilleOrgAdmin,
+  springfieldOrgAdmin,
   springfieldHost,
 } from "@/lib/groups/test-fixtures";
 
@@ -36,14 +36,14 @@ describe("getGroupForOrgAdmin", () => {
     await resetTestDatabase(testDb);
     await seedOrganizations(testDb);
     ({ id: groupId } = await createGroup({
-      actor: springfieldAdmin,
+      actor: springfieldOrgAdmin,
       name: "Grade 2 — Room 7",
       sessionCreationMode: "RECURRING",
     }));
   });
 
   it("returns a new Group with no hosts", async () => {
-    await expect(getGroupForOrgAdmin({ actor: springfieldAdmin, groupId })).resolves.toEqual({
+    await expect(getGroupForOrgAdmin({ actor: springfieldOrgAdmin, groupId })).resolves.toEqual({
       id: groupId,
       name: "Grade 2 — Room 7",
       sessionCreationMode: "RECURRING",
@@ -54,16 +54,16 @@ describe("getGroupForOrgAdmin", () => {
   it("lists invited hosts by email, pending until they accept", async () => {
     const lisaInvite = recordingSender();
     await inviteHost(
-      { actor: springfieldAdmin, groupId, email: "lisa@springfield.example" },
+      { actor: springfieldOrgAdmin, groupId, email: "lisa@springfield.example" },
       lisaInvite,
     );
     await inviteHost(
-      { actor: springfieldAdmin, groupId, email: "bart@springfield.example" },
+      { actor: springfieldOrgAdmin, groupId, email: "bart@springfield.example" },
       recordingSender(),
     );
     await acceptHostInvitation({ token: readToken(lisaInvite.sent[0]), password: "saxophone 42" });
 
-    const group = await getGroupForOrgAdmin({ actor: springfieldAdmin, groupId });
+    const group = await getGroupForOrgAdmin({ actor: springfieldOrgAdmin, groupId });
 
     expect(group.hosts).toEqual([
       { id: expect.any(String), email: "bart@springfield.example", hasAcceptedInvitation: false },
@@ -72,7 +72,7 @@ describe("getGroupForOrgAdmin", () => {
   });
 
   it("doesn't find a Group of another Organization", async () => {
-    await expect(getGroupForOrgAdmin({ actor: shelbyvilleAdmin, groupId })).rejects.toThrow(
+    await expect(getGroupForOrgAdmin({ actor: shelbyvilleOrgAdmin, groupId })).rejects.toThrow(
       GroupNotFoundError,
     );
   });

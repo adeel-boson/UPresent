@@ -16,8 +16,14 @@ export const SHELBYVILLE = {
   schemaName: "org_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
 };
 
-export const springfieldAdmin = { id: "springfield-admin", email: "skinner@springfield.example" };
-export const shelbyvilleAdmin = { id: "shelbyville-admin", email: "admin@shelbyville.example" };
+export const springfieldOrgAdmin = {
+  id: "springfield-org-admin",
+  email: "skinner@springfield.example",
+};
+export const shelbyvilleOrgAdmin = {
+  id: "shelbyville-org-admin",
+  email: "admin@shelbyville.example",
+};
 export const springfieldHost = { id: "springfield-host", email: "hoover@springfield.example" };
 
 export async function seedOrganizations(db: TestDatabase): Promise<void> {
@@ -25,14 +31,14 @@ export async function seedOrganizations(db: TestDatabase): Promise<void> {
   await createApprovedTestOrganization(db, SHELBYVILLE);
   await db.insert(users).values([
     {
-      ...springfieldAdmin,
+      ...springfieldOrgAdmin,
       hashedPassword: "not-a-real-hash",
       role: "ORG_ADMIN",
       emailVerified: new Date(),
       organizationId: SPRINGFIELD.id,
     },
     {
-      ...shelbyvilleAdmin,
+      ...shelbyvilleOrgAdmin,
       hashedPassword: "not-a-real-hash",
       role: "ORG_ADMIN",
       emailVerified: new Date(),

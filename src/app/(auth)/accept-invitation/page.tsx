@@ -30,8 +30,8 @@ export default async function AcceptInvitationPage({
             <h1>Link not valid</h1>
           </CardTitle>
           <CardDescription>
-            This invitation link is incomplete. Open the link from your email again, or ask your
-            organization&apos;s admin to invite you again.
+            This invitation link is incomplete. Open the link from your email again, or ask whoever
+            invited you to send a new invitation.
           </CardDescription>
         </CardHeader>
       </Card>

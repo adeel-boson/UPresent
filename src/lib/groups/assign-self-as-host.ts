@@ -1,8 +1,8 @@
 import { eq } from "drizzle-orm";
 
 import { withTenant } from "@/lib/db/tenant";
-import { GroupManagementNotPermittedError, GroupNotFoundError } from "@/lib/groups/errors";
-import { loadGroupsActor } from "@/lib/groups/load-actor";
+import { GroupNotFoundError } from "@/lib/groups/errors";
+import { loadOrgAdminActor } from "@/lib/groups/load-actor";
 
 export type AssignSelfAsHostInput = {
   actor: { id: string };
@@ -13,10 +13,7 @@ export type AssignSelfAsHostInput = {
 // directly (CONTEXT.md). Their role stays ORG_ADMIN: hosting is the Group
 // assignment, and an org-admin already sees every Group.
 export async function assignSelfAsHost(input: AssignSelfAsHostInput): Promise<void> {
-  const actor = await loadGroupsActor(input.actor.id);
-  if (actor?.role !== "ORG_ADMIN") {
-    throw new GroupManagementNotPermittedError(input.actor.id);
-  }
+  const actor = await loadOrgAdminActor(input.actor.id);
 
   await withTenant(actor.organization, async ({ db, tables }) => {
     const [group] = await db

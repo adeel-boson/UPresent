@@ -221,7 +221,7 @@ Use a route handler only for non-React clients: Auth.js, webhooks, file download
 
 ### Errors
 
-- An expected domain failure that a caller handles is a typed `Error` subclass that sets `name`, exported from the use-case file (`OrganizationNotFoundError`, `EmailAlreadyInUseError`).
+- An expected domain failure that a caller handles is a typed `Error` subclass that sets `name`, exported from the use-case file (`OrganizationNotFoundError`, `EmailAlreadyInUseError`). An error thrown by several use cases in one domain folder lives in that folder's `errors.ts` instead. Canonical: [`src/lib/groups/errors.ts`](src/lib/groups/errors.ts).
 - Throw for failures. Return values are for results, and form actions return state only because `useActionState` needs it.
 - Messages name the entity and ID and never contain secrets or passwords.
 

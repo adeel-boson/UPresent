@@ -26,7 +26,7 @@ import {
   readToken,
   recordingSender,
   seedOrganizations,
-  springfieldAdmin,
+  springfieldOrgAdmin,
 } from "@/lib/groups/test-fixtures";
 
 const INVITEE = "lisa.teacher@springfield.example";
@@ -41,7 +41,7 @@ describe("acceptHostInvitation", () => {
     await resetTestDatabase(testDb);
     await seedOrganizations(testDb);
     ({ id: groupId } = await createGroup({
-      actor: springfieldAdmin,
+      actor: springfieldOrgAdmin,
       name: "Grade 2 — Room 7",
       sessionCreationMode: "MANUAL",
     }));
@@ -49,7 +49,7 @@ describe("acceptHostInvitation", () => {
 
   async function invite(): Promise<string> {
     const sender = recordingSender();
-    await inviteHost({ actor: springfieldAdmin, groupId, email: INVITEE }, sender);
+    await inviteHost({ actor: springfieldOrgAdmin, groupId, email: INVITEE }, sender);
     return readToken(sender.sent[0]);
   }
 

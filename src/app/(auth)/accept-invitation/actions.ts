@@ -37,7 +37,7 @@ export async function acceptInvitation(
     if (error instanceof InvalidHostInvitationTokenError) {
       return {
         error:
-          "This invitation link is invalid, has already been used, or has expired. Ask your organization's admin to invite you again.",
+          "This invitation link is invalid, has already been used, or has expired. Ask whoever invited you to send a new invitation.",
       };
     }
     throw error;

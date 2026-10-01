@@ -24,8 +24,8 @@ import {
   readToken,
   recordingSender,
   seedOrganizations,
-  shelbyvilleAdmin,
-  springfieldAdmin,
+  shelbyvilleOrgAdmin,
+  springfieldOrgAdmin,
   springfieldHost,
 } from "@/lib/groups/test-fixtures";
 
@@ -39,7 +39,7 @@ describe("inviteHost", () => {
     await resetTestDatabase(testDb);
     await seedOrganizations(testDb);
     ({ id: groupId } = await createGroup({
-      actor: springfieldAdmin,
+      actor: springfieldOrgAdmin,
       name: "Grade 2 — Room 7",
       sessionCreationMode: "MANUAL",
     }));
@@ -48,7 +48,7 @@ describe("inviteHost", () => {
   it("emails the invitee a link to set their password", async () => {
     const sender = recordingSender();
 
-    await inviteHost({ actor: springfieldAdmin, groupId, email: INVITEE }, sender);
+    await inviteHost({ actor: springfieldOrgAdmin, groupId, email: INVITEE }, sender);
 
     expect(sender.sent).toHaveLength(1);
     expect(sender.sent[0]?.to).toBe(INVITEE);
@@ -62,12 +62,12 @@ describe("inviteHost", () => {
   it("sends a fresh link when re-inviting a host who hasn't accepted, listing them once", async () => {
     const first = recordingSender();
     const second = recordingSender();
-    await inviteHost({ actor: springfieldAdmin, groupId, email: INVITEE }, first);
+    await inviteHost({ actor: springfieldOrgAdmin, groupId, email: INVITEE }, first);
 
-    await inviteHost({ actor: springfieldAdmin, groupId, email: INVITEE.toUpperCase() }, second);
+    await inviteHost({ actor: springfieldOrgAdmin, groupId, email: INVITEE.toUpperCase() }, second);
 
     expect(readToken(second.sent[0])).not.toBe(readToken(first.sent[0]));
-    const { hosts } = await getGroupForOrgAdmin({ actor: springfieldAdmin, groupId });
+    const { hosts } = await getGroupForOrgAdmin({ actor: springfieldOrgAdmin, groupId });
     expect(hosts).toEqual([
       { id: expect.any(String), email: INVITEE, hasAcceptedInvitation: false },
     ]);
@@ -75,14 +75,14 @@ describe("inviteHost", () => {
 
   it("adds a host who already has a password to another Group, telling them without a link", async () => {
     const otherGroup = await createGroup({
-      actor: springfieldAdmin,
+      actor: springfieldOrgAdmin,
       name: "Choir",
       sessionCreationMode: "MANUAL",
     });
     const sender = recordingSender();
 
     await inviteHost(
-      { actor: springfieldAdmin, groupId: otherGroup.id, email: springfieldHost.email },
+      { actor: springfieldOrgAdmin, groupId: otherGroup.id, email: springfieldHost.email },
       sender,
     );
 
@@ -104,16 +104,16 @@ describe("inviteHost", () => {
     const sender = recordingSender();
 
     for (const email of [
-      shelbyvilleAdmin.email,
-      springfieldAdmin.email,
+      shelbyvilleOrgAdmin.email,
+      springfieldOrgAdmin.email,
       "operator@upresent.example",
     ]) {
-      await expect(inviteHost({ actor: springfieldAdmin, groupId, email }, sender)).rejects.toThrow(
-        HostEmailNotInvitableError,
-      );
+      await expect(
+        inviteHost({ actor: springfieldOrgAdmin, groupId, email }, sender),
+      ).rejects.toThrow(HostEmailNotInvitableError);
     }
     expect(sender.sent).toEqual([]);
-    const { hosts } = await getGroupForOrgAdmin({ actor: springfieldAdmin, groupId });
+    const { hosts } = await getGroupForOrgAdmin({ actor: springfieldOrgAdmin, groupId });
     expect(hosts).toEqual([]);
   });
 
@@ -121,7 +121,7 @@ describe("inviteHost", () => {
     const sender = recordingSender();
 
     await expect(
-      inviteHost({ actor: shelbyvilleAdmin, groupId, email: INVITEE }, sender),
+      inviteHost({ actor: shelbyvilleOrgAdmin, groupId, email: INVITEE }, sender),
     ).rejects.toThrow(GroupNotFoundError);
     expect(sender.sent).toEqual([]);
   });
@@ -140,9 +140,9 @@ describe("inviteHost", () => {
     };
 
     await expect(
-      inviteHost({ actor: springfieldAdmin, groupId, email: INVITEE }, failingSender),
+      inviteHost({ actor: springfieldOrgAdmin, groupId, email: INVITEE }, failingSender),
     ).rejects.toThrow("Resend is down");
-    const { hosts } = await getGroupForOrgAdmin({ actor: springfieldAdmin, groupId });
+    const { hosts } = await getGroupForOrgAdmin({ actor: springfieldOrgAdmin, groupId });
     expect(hosts).toEqual([]);
   });
 });

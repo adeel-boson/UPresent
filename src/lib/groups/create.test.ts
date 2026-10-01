@@ -20,8 +20,8 @@ import { GroupManagementNotPermittedError } from "@/lib/groups/errors";
 import { listGroupsForUser } from "@/lib/groups/list";
 import {
   seedOrganizations,
-  shelbyvilleAdmin,
-  springfieldAdmin,
+  shelbyvilleOrgAdmin,
+  springfieldOrgAdmin,
   springfieldHost,
 } from "@/lib/groups/test-fixtures";
 
@@ -33,24 +33,24 @@ describe("createGroup", () => {
 
   it("creates a Group that the org-admin then sees in their list", async () => {
     const { id } = await createGroup({
-      actor: springfieldAdmin,
+      actor: springfieldOrgAdmin,
       name: "Grade 4 — Room 2",
       sessionCreationMode: "RECURRING",
     });
 
-    await expect(listGroupsForUser(springfieldAdmin)).resolves.toEqual([
+    await expect(listGroupsForUser(springfieldOrgAdmin)).resolves.toEqual([
       { id, name: "Grade 4 — Room 2", sessionCreationMode: "RECURRING" },
     ]);
   });
 
   it("keeps the Group inside the org-admin's own Organization", async () => {
     await createGroup({
-      actor: springfieldAdmin,
+      actor: springfieldOrgAdmin,
       name: "Grade 4 — Room 2",
       sessionCreationMode: "MANUAL",
     });
 
-    await expect(listGroupsForUser(shelbyvilleAdmin)).resolves.toEqual([]);
+    await expect(listGroupsForUser(shelbyvilleOrgAdmin)).resolves.toEqual([]);
   });
 
   it("refuses a host", async () => {

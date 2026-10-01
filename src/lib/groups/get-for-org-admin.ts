@@ -2,8 +2,8 @@ import { asc, eq, sql } from "drizzle-orm";
 
 import { users } from "@/lib/db/schema";
 import { withTenant, type SessionCreationMode } from "@/lib/db/tenant";
-import { GroupManagementNotPermittedError, GroupNotFoundError } from "@/lib/groups/errors";
-import { loadGroupsActor } from "@/lib/groups/load-actor";
+import { GroupNotFoundError } from "@/lib/groups/errors";
+import { loadOrgAdminActor } from "@/lib/groups/load-actor";
 
 export type GroupHostSummary = {
   id: string;
@@ -26,10 +26,7 @@ export type GetGroupForOrgAdminInput = {
 
 // One Group of the org-admin's Organization, with its hosts by email.
 export async function getGroupForOrgAdmin(input: GetGroupForOrgAdminInput): Promise<GroupDetails> {
-  const actor = await loadGroupsActor(input.actor.id);
-  if (actor?.role !== "ORG_ADMIN") {
-    throw new GroupManagementNotPermittedError(input.actor.id);
-  }
+  const actor = await loadOrgAdminActor(input.actor.id);
 
   return withTenant(actor.organization, async ({ db, tables }) => {
     const { groups, groupHosts } = tables;

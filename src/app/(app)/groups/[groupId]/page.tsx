@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { z } from "zod";
 
 import { takeAttendanceMyself } from "@/app/(app)/groups/[groupId]/actions";
 import { InviteHostForm } from "@/app/(app)/groups/[groupId]/_components/invite-host-form";
@@ -23,9 +24,13 @@ export const metadata: Metadata = {
   title: "Group",
 };
 
+const paramsSchema = z.object({
+  groupId: z.string().min(1),
+});
+
 export default async function GroupPage({ params }: PageProps<"/groups/[groupId]">) {
   const orgAdmin = await requireRole("ORG_ADMIN");
-  const { groupId } = await params;
+  const { groupId } = paramsSchema.parse(await params);
 
   let group: GroupDetails;
   try {

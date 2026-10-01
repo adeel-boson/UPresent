@@ -1,11 +1,11 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { buildEmailLink, createEmailLinkToken } from "@/lib/auth/email-link-token";
 import { hostInvitationTokens, users } from "@/lib/db/schema";
 import { withTenant } from "@/lib/db/tenant";
 import { emailSender, type Email, type EmailSender } from "@/lib/email/email-sender";
-import { GroupManagementNotPermittedError, GroupNotFoundError } from "@/lib/groups/errors";
-import { loadGroupsActor } from "@/lib/groups/load-actor";
+import { GroupNotFoundError } from "@/lib/groups/errors";
+import { loadOrgAdminActor } from "@/lib/groups/load-actor";
 
 // Long enough for an invitation to wait out a weekend or a week of term
 // prep, unlike a password reset link, which is used within minutes.
@@ -40,10 +40,7 @@ export async function inviteHost(
   input: InviteHostInput,
   sender: EmailSender = emailSender,
 ): Promise<void> {
-  const actor = await loadGroupsActor(input.actor.id);
-  if (actor?.role !== "ORG_ADMIN") {
-    throw new GroupManagementNotPermittedError(input.actor.id);
-  }
+  const actor = await loadOrgAdminActor(input.actor.id);
   const { organization } = actor;
   // Emails are stored lowercase so login can match them case-insensitively.
   const email = input.email.trim().toLowerCase();
@@ -71,7 +68,8 @@ export async function inviteHost(
           email: users.email,
           role: users.role,
           organizationId: users.organizationId,
-          hashedPassword: users.hashedPassword,
+          // Only whether a password is set, never the hash itself.
+          hasPassword: sql<boolean>`${users.hashedPassword} IS NOT NULL`,
         })
         .from(users)
         .where(eq(users.email, email));
@@ -93,7 +91,7 @@ export async function inviteHost(
         groupName: group.name,
       };
       let message: Email;
-      if (host.hashedPassword === null) {
+      if (!host.hasPassword) {
         const { token, tokenHash } = createEmailLinkToken();
         await tx.insert(hostInvitationTokens).values({
           tokenHash,

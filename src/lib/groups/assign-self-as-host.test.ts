@@ -20,8 +20,8 @@ import { GroupManagementNotPermittedError, GroupNotFoundError } from "@/lib/grou
 import { getGroupForOrgAdmin } from "@/lib/groups/get-for-org-admin";
 import {
   seedOrganizations,
-  shelbyvilleAdmin,
-  springfieldAdmin,
+  shelbyvilleOrgAdmin,
+  springfieldOrgAdmin,
   springfieldHost,
 } from "@/lib/groups/test-fixtures";
 
@@ -32,31 +32,31 @@ describe("assignSelfAsHost", () => {
     await resetTestDatabase(testDb);
     await seedOrganizations(testDb);
     ({ id: groupId } = await createGroup({
-      actor: springfieldAdmin,
+      actor: springfieldOrgAdmin,
       name: "Grade 6 — Room 1",
       sessionCreationMode: "MANUAL",
     }));
   });
 
   it("makes the org-admin one of the Group's hosts", async () => {
-    await assignSelfAsHost({ actor: springfieldAdmin, groupId });
+    await assignSelfAsHost({ actor: springfieldOrgAdmin, groupId });
 
-    const { hosts } = await getGroupForOrgAdmin({ actor: springfieldAdmin, groupId });
+    const { hosts } = await getGroupForOrgAdmin({ actor: springfieldOrgAdmin, groupId });
     expect(hosts).toEqual([
-      { id: springfieldAdmin.id, email: springfieldAdmin.email, hasAcceptedInvitation: true },
+      { id: springfieldOrgAdmin.id, email: springfieldOrgAdmin.email, hasAcceptedInvitation: true },
     ]);
   });
 
   it("does nothing more when the org-admin is already a host", async () => {
-    await assignSelfAsHost({ actor: springfieldAdmin, groupId });
-    await assignSelfAsHost({ actor: springfieldAdmin, groupId });
+    await assignSelfAsHost({ actor: springfieldOrgAdmin, groupId });
+    await assignSelfAsHost({ actor: springfieldOrgAdmin, groupId });
 
-    const { hosts } = await getGroupForOrgAdmin({ actor: springfieldAdmin, groupId });
+    const { hosts } = await getGroupForOrgAdmin({ actor: springfieldOrgAdmin, groupId });
     expect(hosts).toHaveLength(1);
   });
 
   it("doesn't find a Group of another Organization", async () => {
-    await expect(assignSelfAsHost({ actor: shelbyvilleAdmin, groupId })).rejects.toThrow(
+    await expect(assignSelfAsHost({ actor: shelbyvilleOrgAdmin, groupId })).rejects.toThrow(
       GroupNotFoundError,
     );
   });
