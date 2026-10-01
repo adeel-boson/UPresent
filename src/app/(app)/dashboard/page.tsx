@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth/guards";
 import { ROLE_LABELS } from "@/lib/auth/role";
+import { findOrganizationOfUser } from "@/lib/organizations/find-for-user";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
 
 export default async function DashboardPage() {
   const user = await requireUser();
+  const organization = await findOrganizationOfUser(user.id);
 
   return (
     <Card>
@@ -19,6 +21,9 @@ export default async function DashboardPage() {
         <CardTitle className="text-xl">
           <h1>Dashboard</h1>
         </CardTitle>
+        {organization ? (
+          <p className="font-heading text-base font-medium">{organization.name}</p>
+        ) : null}
         <CardDescription>
           Logged in as <strong className="text-foreground">{user.email}</strong>
         </CardDescription>
@@ -31,7 +36,11 @@ export default async function DashboardPage() {
           <TextLink href="/admin/signups" className="text-sm">
             Pending signup requests
           </TextLink>
-        ) : null}
+        ) : (
+          <TextLink href="/groups" className="text-sm">
+            {user.role === "ORG_ADMIN" ? "Groups" : "Your groups"}
+          </TextLink>
+        )}
       </CardContent>
     </Card>
   );

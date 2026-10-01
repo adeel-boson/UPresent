@@ -27,6 +27,8 @@ An attendance-tracking product for schools and colleges. See [`docs/v1-plan.md`]
    npx auth secret
    ```
 
+   Signup emails a verification link through [Resend](https://resend.com). Set `RESEND_API_KEY` to a Resend API key, `EMAIL_FROM` to a sender on a domain verified in Resend, and `APP_URL` to the origin links should open (`http://localhost:3000` locally). Resend's shared test sender, `onboarding@resend.dev`, only delivers to the email address of your own Resend account.
+
 3. Start local Postgres:
 
    ```bash

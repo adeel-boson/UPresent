@@ -2,7 +2,15 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/style-guide"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/signup",
+  "/verify-email",
+  "/forgot-password",
+  "/reset-password",
+  "/accept-invitation",
+  "/style-guide",
+];
 
 export default auth((request) => {
   const isLoggedIn = Boolean(request.auth?.user);

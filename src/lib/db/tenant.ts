@@ -6,6 +6,10 @@ import { defineTenantTables } from "@/lib/db/tenant-schema";
 import type { Organization } from "@/lib/db/schema";
 import { isGeneratedSchemaName } from "@/lib/db/schema-name";
 
+// Tenant enum values and types for domain modules, which can't import the
+// tenant schema module itself (lint, ADR-0009).
+export { SESSION_CREATION_MODES, type SessionCreationMode } from "@/lib/db/tenant-schema";
+
 // How many Organizations' table sets one server instance keeps built. Each
 // is a few plain objects over the shared pool, so this only bounds memory.
 const MAX_CACHED_TENANTS = 100;

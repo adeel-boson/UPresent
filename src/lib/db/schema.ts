@@ -8,9 +8,8 @@ import { foreignKey, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizz
 // Table, column, enum, index and constraint names are the ones the original
 // schema used, so the baseline migration builds an identical database.
 
-// HOST is declared here because the login/session model needs to know the
-// full set of roles it will eventually carry, but nothing yet issues that
-// role — see CONTEXT.md for the role definitions.
+// See CONTEXT.md for the role definitions. HOST Users are created when an
+// org-admin invites a host (src/lib/groups/invite-host.ts).
 export const roleEnum = pgEnum("Role", ["SUPER_ADMIN", "ORG_ADMIN", "HOST"]);
 export type Role = (typeof roleEnum.enumValues)[number];
 
@@ -57,7 +56,9 @@ export const users = pgTable(
       .primaryKey()
       .$defaultFn(() => createId()),
     email: text("email").notNull(),
-    hashedPassword: text("hashedPassword").notNull(),
+    // Null for an invited host until they accept the invitation; a User
+    // without a password can't log in.
+    hashedPassword: text("hashedPassword"),
     role: roleEnum("role").notNull(),
     emailVerified: timestampColumn("emailVerified"),
     organizationId: text("organizationId"),
@@ -78,6 +79,70 @@ export const users = pgTable(
       foreignColumns: [organizations.id],
     })
       .onDelete("set null")
+      .onUpdate("cascade"),
+  ],
+);
+
+// Links sent to prove a User owns their email (ADR-0004). Only a SHA-256 hash
+// of the token is stored, so a leaked table can't be used to verify anyone.
+// Rows are deleted when used, and with their User.
+export const emailVerificationTokens = pgTable(
+  "EmailVerificationToken",
+  {
+    tokenHash: text("tokenHash").primaryKey(),
+    userId: text("userId").notNull(),
+    expiresAt: timestampColumn("expiresAt").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      name: "EmailVerificationToken_userId_fkey",
+      columns: [table.userId],
+      foreignColumns: [users.id],
+    })
+      .onDelete("cascade")
+      .onUpdate("cascade"),
+  ],
+);
+
+// Links sent to set a new password. Kept apart from EmailVerificationToken so a
+// verification link can never be used to reset a password. Stored and deleted
+// the same way: a SHA-256 hash of the token, removed when used or with its User.
+export const passwordResetTokens = pgTable(
+  "PasswordResetToken",
+  {
+    tokenHash: text("tokenHash").primaryKey(),
+    userId: text("userId").notNull(),
+    expiresAt: timestampColumn("expiresAt").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      name: "PasswordResetToken_userId_fkey",
+      columns: [table.userId],
+      foreignColumns: [users.id],
+    })
+      .onDelete("cascade")
+      .onUpdate("cascade"),
+  ],
+);
+
+// Links emailed to an invited host to set their first password. Kept apart
+// from the other token tables so an invitation link can only ever accept an
+// invitation. Stored and deleted the same way: a SHA-256 hash of the token,
+// removed when used or with its User.
+export const hostInvitationTokens = pgTable(
+  "HostInvitationToken",
+  {
+    tokenHash: text("tokenHash").primaryKey(),
+    userId: text("userId").notNull(),
+    expiresAt: timestampColumn("expiresAt").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      name: "HostInvitationToken_userId_fkey",
+      columns: [table.userId],
+      foreignColumns: [users.id],
+    })
+      .onDelete("cascade")
       .onUpdate("cascade"),
   ],
 );

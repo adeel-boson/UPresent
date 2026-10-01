@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { login, type LoginState } from "@/app/(auth)/login/actions";
 import { FormErrorAlert } from "@/components/forms/form-error-alert";
 import { TextLink } from "@/components/navigation/text-link";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,7 +20,7 @@ import { Label } from "@/components/ui/label";
 
 const initialState: LoginState = { error: null };
 
-export function LoginForm() {
+export function LoginForm({ notice }: { notice: string | null }) {
   const [state, formAction, pending] = useActionState(login, initialState);
 
   return (
@@ -32,12 +33,22 @@ export function LoginForm() {
       </CardHeader>
       <form action={formAction}>
         <CardContent className="flex flex-col gap-4">
+          {notice && (
+            <Alert role="status">
+              <AlertTitle>{notice}</AlertTitle>
+            </Alert>
+          )}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="email">Email</Label>
             <Input id="email" name="email" type="email" required autoComplete="email" />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="password">Password</Label>
+            <div className="flex items-baseline justify-between gap-2">
+              <Label htmlFor="password">Password</Label>
+              <TextLink href="/forgot-password" className="text-sm">
+                Forgot password?
+              </TextLink>
+            </div>
             <Input
               id="password"
               name="password"

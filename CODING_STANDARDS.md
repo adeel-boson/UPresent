@@ -55,8 +55,9 @@ Run `npm run format` to fix formatting and `npx eslint --fix` to fix auto-fixabl
 src/
 ├── app/                       Routes: pages, layouts, server actions, route handlers
 │   ├── layout.tsx             Root layout: <html>, fonts, the page-title template
-│   ├── (auth)/layout.tsx      Signed-out shell (login, signup): one centered card
+│   ├── (auth)/layout.tsx      Signed-out shell (login, signup, password reset): one centered card
 │   ├── (app)/layout.tsx       Signed-in shell (dashboard, admin/…): header + content
+│   ├── (group)/_lib/          Route-layer helpers shared by a group's routes (may call Next APIs)
 │   └── (group)/<route>/       Route groups don't change the URL (/login, not /(auth)/login)
 │       ├── page.tsx           Thin: guard → call domain → render
 │       ├── actions.ts         Server actions for this route ("use server")
@@ -66,7 +67,8 @@ src/
 │   └── <feature>/             App components shared by 2+ routes (forms/, navigation/, …)
 ├── lib/
 │   ├── <domain>/              Domain modules: organizations/, groups/, attendance/, …
-│   ├── auth/                  Auth.js config, password hashing, guards
+│   ├── auth/                  Auth.js config, password hashing and rule, emailed links, guards
+│   ├── email/                 EmailSender seam and its Resend adapter
 │   └── db/
 │       ├── client.ts          The one pg Pool + Drizzle instance (server-only)
 │       ├── schema.ts          Shared tables and enums (`public`); types and enum values
@@ -219,7 +221,7 @@ Use a route handler only for non-React clients: Auth.js, webhooks, file download
 
 ### Errors
 
-- An expected domain failure that a caller handles is a typed `Error` subclass that sets `name`, exported from the use-case file (`OrganizationNotFoundError`, `EmailAlreadyInUseError`).
+- An expected domain failure that a caller handles is a typed `Error` subclass that sets `name`, exported from the use-case file (`OrganizationNotFoundError`, `EmailAlreadyInUseError`). An error thrown by several use cases in one domain folder lives in that folder's `errors.ts` instead. Canonical: [`src/lib/groups/errors.ts`](src/lib/groups/errors.ts).
 - Throw for failures. Return values are for results, and form actions return state only because `useActionState` needs it.
 - Messages name the entity and ID and never contain secrets or passwords.
 
@@ -255,8 +257,8 @@ Stack: Vitest, `node` environment, tests colocated as `src/**/*.test.ts`. For te
   vi.mock("@/lib/db/client", () => ({ db: testDb }));
   ```
 
-- **Tenant code is tested through `withTenant` against real tenant schemas.** [`tenant.test.ts`](src/lib/db/tenant.test.ts) shows how: migrate two `org_…` schemas with the tenant runner, then assert that data written through one Organization's scope is invisible to the other's.
-- **Mock only at system boundaries**: injected seams (`SchemaProvisioner`, `TenantMigrationRunner`), `next/navigation`, `@/lib/auth`, and the clock. To force a race or a failure the database can't produce on one connection, spy on the one call at that seam (e.g. the in-transaction lookup in `signup.test.ts`), and let the rest run for real. Never mock our own domain modules from inside their own tests. Use `vi.hoisted` + `vi.mock` as in the existing tests.
+- **Tenant code is tested through `withTenant` against real tenant schemas.** [`tenant.test.ts`](src/lib/db/tenant.test.ts) shows how: migrate two `org_…` schemas with the tenant runner, then assert that data written through one Organization's scope is invisible to the other's. Domain tests swap in `createTestWithTenant` from [`testing.ts`](src/lib/db/testing.ts) for the app's `withTenant`, seed approved Organizations with `createApprovedTestOrganization` (real tenant migrations), and check the other Organization can't reach the data. Canonical: [`invite-host.test.ts`](src/lib/groups/invite-host.test.ts).
+- **Mock only at system boundaries**: injected seams (`SchemaProvisioner`, `TenantMigrationRunner`, `EmailSender`), `next/navigation`, `@/lib/auth`, and the clock. To force a race or a failure the database can't produce on one connection, spy on the one call at that seam (e.g. the in-transaction lookup in `signup.test.ts`), and let the rest run for real. Never mock our own domain modules from inside their own tests. Use `vi.hoisted` + `vi.mock` as in the existing tests.
 - **Name tests as behaviors in domain language**, e.g. `"throws when the organization is already approved"`.
 - **Take expected values from the spec or literals.** Never recompute them the way the code does.
 - **Fix bugs test-first.** Write the failing test, then the fix.
