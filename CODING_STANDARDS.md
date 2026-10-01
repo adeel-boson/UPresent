@@ -246,7 +246,7 @@ Use a route handler only for non-React clients: Auth.js, webhooks, file download
 Stack: Vitest, `node` environment, tests colocated as `src/**/*.test.ts`. For test-first work, use the `tdd` skill.
 
 - **Test domain modules at their interface.** Call the exported function and assert on its result, its thrown errors, and its calls across the seams. Canonical: [`approve.test.ts`](src/lib/organizations/approve.test.ts).
-- **Run data access against real Postgres semantics, not a mocked query builder.** Domain tests swap the app's client for PGlite, an in-process Postgres with the real shared migrations applied, via `createTestDatabase()` from [`src/lib/db/testing.ts`](src/lib/db/testing.ts). They call `resetTestDatabase` in `beforeEach` and assert on the rows. Canonical: [`signup.test.ts`](src/lib/organizations/signup.test.ts):
+- **Run data access against real Postgres semantics, not a mocked query builder.** Domain tests swap the app's client for PGlite, an in-process Postgres with the real shared migrations applied, via `createTestDatabase()` from [`src/lib/db/testing.ts`](src/lib/db/testing.ts). The migrations run once per Vitest run in [`testing-global-setup.ts`](src/lib/db/testing-global-setup.ts), which must stay registered as a `globalSetup` in `vitest.config.ts`; each call to `createTestDatabase()` starts from that migrated template. Tests call `resetTestDatabase` in `beforeEach` and assert on the rows. Canonical: [`signup.test.ts`](src/lib/organizations/signup.test.ts):
 
   ```ts
   const { testDb } = await vi.hoisted(async () => {

@@ -22,28 +22,29 @@ export type TestDatabase = PgliteDatabase<typeof schema> & { $client: PGlite };
 
 export const SHARED_MIGRATIONS_FOLDER = path.join(process.cwd(), "db", "migrations", "shared");
 
-declare module "vitest" {
-  export interface ProvidedContext {
-    // Path to a dump of a migrated PGlite data directory, written once per
-    // run by testing-global-setup.ts.
-    testDatabaseTemplate: string;
-  }
-}
-
 // Starts from the migrated template instead of running initdb and the
 // migrations again: about 5x cheaper per test file, which keeps setup well
 // inside the hook timeout when every test file boots a database in parallel.
+// Needs testing-global-setup.ts registered as a Vitest globalSetup.
 export async function createTestDatabase(): Promise<TestDatabase> {
-  const template = await openAsBlob(inject("testDatabaseTemplate"));
+  const templatePath = inject("testDatabaseTemplatePath");
+  if (!templatePath) {
+    throw new Error(
+      "No test database template: register src/lib/db/testing-global-setup.ts as a globalSetup in the Vitest config.",
+    );
+  }
+  const template = await openAsBlob(templatePath);
   return drizzle({ client: new PGlite({ loadDataDir: template }), schema });
 }
 
-// Builds the template that createTestDatabase starts from, as a data
-// directory tarball.
+// Builds the template that createTestDatabase starts from: a migrated
+// database's data directory, as a tarball.
 export async function dumpMigratedTestDatabase(): Promise<Blob> {
   const db = drizzle({ client: new PGlite(), schema });
   try {
     await migrate(db, { migrationsFolder: SHARED_MIGRATIONS_FOLDER });
+    // Uncompressed: every test file loads it, and gunzipping ~40 MB each time
+    // would cost more than the disk space saved.
     return await db.$client.dumpDataDir("none");
   } finally {
     await db.$client.close();
