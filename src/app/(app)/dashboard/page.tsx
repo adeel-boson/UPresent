@@ -36,7 +36,11 @@ export default async function DashboardPage() {
           <TextLink href="/admin/signups" className="text-sm">
             Pending signup requests
           </TextLink>
-        ) : null}
+        ) : (
+          <TextLink href="/groups" className="text-sm">
+            {user.role === "ORG_ADMIN" ? "Groups" : "Your groups"}
+          </TextLink>
+        )}
       </CardContent>
     </Card>
   );

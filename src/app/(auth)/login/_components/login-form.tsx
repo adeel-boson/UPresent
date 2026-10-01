@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 
 const initialState: LoginState = { error: null };
 
-export function LoginForm({ isPasswordUpdated }: { isPasswordUpdated: boolean }) {
+export function LoginForm({ notice }: { notice: string | null }) {
   const [state, formAction, pending] = useActionState(login, initialState);
 
   return (
@@ -33,9 +33,9 @@ export function LoginForm({ isPasswordUpdated }: { isPasswordUpdated: boolean })
       </CardHeader>
       <form action={formAction}>
         <CardContent className="flex flex-col gap-4">
-          {isPasswordUpdated && (
+          {notice && (
             <Alert role="status">
-              <AlertTitle>Password updated. Log in with your new password.</AlertTitle>
+              <AlertTitle>{notice}</AlertTitle>
             </Alert>
           )}
           <div className="flex flex-col gap-1.5">

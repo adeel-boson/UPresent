@@ -257,7 +257,7 @@ Stack: Vitest, `node` environment, tests colocated as `src/**/*.test.ts`. For te
   vi.mock("@/lib/db/client", () => ({ db: testDb }));
   ```
 
-- **Tenant code is tested through `withTenant` against real tenant schemas.** [`tenant.test.ts`](src/lib/db/tenant.test.ts) shows how: migrate two `org_…` schemas with the tenant runner, then assert that data written through one Organization's scope is invisible to the other's.
+- **Tenant code is tested through `withTenant` against real tenant schemas.** [`tenant.test.ts`](src/lib/db/tenant.test.ts) shows how: migrate two `org_…` schemas with the tenant runner, then assert that data written through one Organization's scope is invisible to the other's. Domain tests swap in `createTestWithTenant` from [`testing.ts`](src/lib/db/testing.ts) for the app's `withTenant`, seed approved Organizations with `createApprovedTestOrganization` (real tenant migrations), and check the other Organization can't reach the data. Canonical: [`invite-host.test.ts`](src/lib/groups/invite-host.test.ts).
 - **Mock only at system boundaries**: injected seams (`SchemaProvisioner`, `TenantMigrationRunner`, `EmailSender`), `next/navigation`, `@/lib/auth`, and the clock. To force a race or a failure the database can't produce on one connection, spy on the one call at that seam (e.g. the in-transaction lookup in `signup.test.ts`), and let the rest run for real. Never mock our own domain modules from inside their own tests. Use `vi.hoisted` + `vi.mock` as in the existing tests.
 - **Name tests as behaviors in domain language**, e.g. `"throws when the organization is already approved"`.
 - **Take expected values from the spec or literals.** Never recompute them the way the code does.

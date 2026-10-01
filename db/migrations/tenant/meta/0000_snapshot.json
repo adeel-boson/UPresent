@@ -1,0 +1,128 @@
+{
+  "id": "9839617d-b2f8-458d-a122-e41d264ddc73",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "tenant.GroupHost": {
+      "name": "GroupHost",
+      "schema": "tenant",
+      "columns": {
+        "groupId": {
+          "name": "groupId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hostId": {
+          "name": "hostId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "GroupHost_groupId_Group_id_fk": {
+          "name": "GroupHost_groupId_Group_id_fk",
+          "tableFrom": "GroupHost",
+          "tableTo": "Group",
+          "schemaTo": "tenant",
+          "columnsFrom": [
+            "groupId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "GroupHost_hostId_User_id_fk": {
+          "name": "GroupHost_hostId_User_id_fk",
+          "tableFrom": "GroupHost",
+          "tableTo": "User",
+          "columnsFrom": [
+            "hostId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "GroupHost_pkey": {
+          "name": "GroupHost_pkey",
+          "columns": [
+            "groupId",
+            "hostId"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "tenant.Group": {
+      "name": "Group",
+      "schema": "tenant",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sessionCreationMode": {
+          "name": "sessionCreationMode",
+          "type": "SessionCreationMode",
+          "typeSchema": "tenant",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp (3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "tenant.SessionCreationMode": {
+      "name": "SessionCreationMode",
+      "schema": "tenant",
+      "values": [
+        "MANUAL",
+        "RECURRING"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

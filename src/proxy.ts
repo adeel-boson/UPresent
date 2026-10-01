@@ -8,6 +8,7 @@ const PUBLIC_PATHS = [
   "/verify-email",
   "/forgot-password",
   "/reset-password",
+  "/accept-invitation",
   "/style-guide",
 ];
 

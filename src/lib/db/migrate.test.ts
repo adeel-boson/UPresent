@@ -76,6 +76,7 @@ describe("migrateTenantSchema", () => {
     ]);
     await expect(tablesIn("public")).resolves.toEqual([
       "EmailVerificationToken",
+      "HostInvitationToken",
       "Organization",
       "PasswordResetToken",
       "User",
@@ -144,16 +145,21 @@ describe("migrateTenantSchema", () => {
     );
     await expect(tablesIn("public")).resolves.toEqual([
       "EmailVerificationToken",
+      "HostInvitationToken",
       "Organization",
       "PasswordResetToken",
       "User",
     ]);
   });
 
-  it("applies the app's real tenant migrations, leaving only the history table", async () => {
+  it("applies the app's real tenant migrations", async () => {
     await migrateTenantSchema(db, TENANT_A, TENANT_MIGRATIONS_FOLDER);
 
-    await expect(tablesIn(TENANT_A)).resolves.toEqual(["__drizzle_migrations"]);
+    await expect(tablesIn(TENANT_A)).resolves.toEqual([
+      "Group",
+      "GroupHost",
+      "__drizzle_migrations",
+    ]);
   });
 });
 

@@ -8,7 +8,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   ORG_ADMIN: "Org-admin",
   // CONTEXT.md: a host is displayed by their host title ("Teacher",
   // "Presenter", …), never the literal word "host". Host titles aren't
-  // modeled yet and nothing issues HOST, so this neutral label only covers a
-  // host without a title. Once titles exist, show the host's title instead.
+  // modeled yet (#11), so this neutral label covers a host without a title.
+  // Once titles exist, show the host's title instead.
   HOST: "Staff",
 };

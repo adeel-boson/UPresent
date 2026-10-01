@@ -20,6 +20,14 @@ _Avoid_: Class, Course, Section, Event (these are all specific instances of the 
 One specific occurrence of a `Group` meeting, at a particular date/time, that attendance is taken against. Generated either manually or from a `Group`'s recurring schedule.
 _Avoid_: Meeting, Occurrence, Class period
 
+**session creation mode**:
+How a `Group`'s `Session`s come into being, chosen by the `org-admin` per `Group`: _manual_ (each `Session` added one at a time) or _recurring_ (generated from a simple weekly schedule).
+_Avoid_: Schedule type, Recurrence (the recurring schedule itself is a separate thing from the choice to use one)
+
+**host invitation**:
+An email from an `org-admin` that makes someone a `host` of a `Group` and carries a single-use link for them to set their password. The invitee is listed as the `Group`'s host from the moment it is sent, marked as invited until they accept.
+_Avoid_: Signup, Registration (hosts never sign themselves up)
+
 **Member**:
 A person on a `Group`'s roster whose attendance is tracked (e.g., a student). Has no login/account in v1 — added via CSV import or manual entry, not self-registration.
 _Avoid_: Student, Attendee, Participant (use "Member" as the generic domain term; "student" etc. are fine in school-facing UI copy but not as the modeling term)

@@ -7,13 +7,19 @@ export const metadata: Metadata = {
   title: "Log in",
 };
 
-// Set by the reset-password action's redirect after a successful reset.
+// Set by the redirects after a password reset ("updated") and after a host
+// accepts their invitation ("set").
 const searchParamsSchema = z.object({
-  password: z.literal("updated"),
+  password: z.enum(["updated", "set"]),
 });
 
-export default async function LoginPage({ searchParams }: PageProps<"/login">) {
-  const isPasswordUpdated = searchParamsSchema.safeParse(await searchParams).success;
+const PASSWORD_NOTICES = {
+  updated: "Password updated. Log in with your new password.",
+  set: "Password set. Log in with your email and new password.",
+};
 
-  return <LoginForm isPasswordUpdated={isPasswordUpdated} />;
+export default async function LoginPage({ searchParams }: PageProps<"/login">) {
+  const parsed = searchParamsSchema.safeParse(await searchParams);
+
+  return <LoginForm notice={parsed.success ? PASSWORD_NOTICES[parsed.data.password] : null} />;
 }

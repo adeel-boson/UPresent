@@ -3,10 +3,15 @@ import { eq } from "drizzle-orm";
 import type { Route } from "next";
 
 import type { Transaction } from "@/lib/db/client";
-import type { emailVerificationTokens, passwordResetTokens } from "@/lib/db/schema";
+import type {
+  emailVerificationTokens,
+  hostInvitationTokens,
+  passwordResetTokens,
+} from "@/lib/db/schema";
 
 // The scheme shared by every emailed single-use link (email verification,
-// password reset): a random token in the link, only its hash in the database.
+// password reset, host invitation): a random token in the link, only its hash
+// in the database.
 
 // Tokens are 256 random bits, so a plain SHA-256 (no salt, no slow hash) is
 // enough to make the stored value useless to someone who reads the table.
@@ -42,7 +47,8 @@ export function buildEmailLink(path: Route, token: string): string {
 
 // The tables holding emailed-link tokens, one per purpose, so a token issued
 // for one purpose can never be redeemed for another.
-export type EmailLinkTokenTable = typeof emailVerificationTokens | typeof passwordResetTokens;
+export type EmailLinkTokenTable =
+  typeof emailVerificationTokens | typeof passwordResetTokens | typeof hostInvitationTokens;
 
 // Uses up `token` from `table` inside `tx` and returns the id of the User it
 // was issued to, or null if it is unknown, already used or expired. Deleting
