@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { takeAttendanceMyself } from "@/app/(app)/groups/[groupId]/actions";
 import { InviteHostForm } from "@/app/(app)/groups/[groupId]/_components/invite-host-form";
+import { RosterCard } from "@/app/(app)/groups/[groupId]/_components/roster-card";
 import { TakeAttendanceMyselfButton } from "@/app/(app)/groups/[groupId]/_components/take-attendance-myself-button";
 import { TextLink } from "@/components/navigation/text-link";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ import { requireRole } from "@/lib/auth/guards";
 import { GroupNotFoundError } from "@/lib/groups/errors";
 import { getGroupForOrgAdmin, type GroupDetails } from "@/lib/groups/get-for-org-admin";
 import { SESSION_CREATION_MODE_LABELS } from "@/lib/groups/session-creation-mode";
+import { listRoster, type Roster } from "@/lib/members/list-roster";
 
 export const metadata: Metadata = {
   title: "Group",
@@ -28,13 +30,23 @@ const paramsSchema = z.object({
   groupId: z.string().min(1),
 });
 
-export default async function GroupPage({ params }: PageProps<"/groups/[groupId]">) {
+// A missing or malformed page number shows the roster's first page.
+const searchParamsSchema = z.object({
+  page: z.coerce.number().int().min(1).catch(1),
+});
+
+export default async function GroupPage({ params, searchParams }: PageProps<"/groups/[groupId]">) {
   const orgAdmin = await requireRole("ORG_ADMIN");
   const { groupId } = paramsSchema.parse(await params);
+  const { page } = searchParamsSchema.parse(await searchParams);
 
   let group: GroupDetails;
+  let roster: Roster;
   try {
-    group = await getGroupForOrgAdmin({ actor: orgAdmin, groupId });
+    [group, roster] = await Promise.all([
+      getGroupForOrgAdmin({ actor: orgAdmin, groupId }),
+      listRoster({ actor: orgAdmin, groupId, page }),
+    ]);
   } catch (error) {
     if (error instanceof GroupNotFoundError) {
       notFound();
@@ -107,6 +119,8 @@ export default async function GroupPage({ params }: PageProps<"/groups/[groupId]
           <InviteHostForm groupId={group.id} />
         </CardContent>
       </Card>
+
+      <RosterCard groupId={group.id} roster={roster} page={page} />
     </div>
   );
 }

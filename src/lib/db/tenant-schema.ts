@@ -1,6 +1,13 @@
 import { createId } from "@paralleldrive/cuid2";
 import { sql } from "drizzle-orm";
-import { pgSchema, primaryKey, text, timestamp, type PgSchema } from "drizzle-orm/pg-core";
+import {
+  pgSchema,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+  type PgSchema,
+} from "drizzle-orm/pg-core";
 
 import { users } from "@/lib/db/schema";
 
@@ -62,7 +69,31 @@ export function defineTenantTables(schema: PgSchema) {
     (table) => [primaryKey({ name: "GroupHost_pkey", columns: [table.groupId, table.hostId] })],
   );
 
-  return { sessionCreationMode, groups, groupHosts };
+  // A Group's roster: the people whose attendance is tracked (CONTEXT.md:
+  // Member). Roster entries only, with no login (ADR-0005), so a Member
+  // belongs to one Group and is removed by deleting the row.
+  const members = schema.table(
+    "Member",
+    {
+      id: text("id")
+        .primaryKey()
+        .$defaultFn(() => createId()),
+      groupId: text("groupId")
+        .notNull()
+        .references(() => groups.id, { onDelete: "cascade", onUpdate: "cascade" }),
+      name: text("name").notNull(),
+      // The Organization's own identifier for the person (e.g. a student
+      // number), when it has one. Optional, but unique within a Group so it
+      // can tell two Members apart; NULLs don't collide.
+      externalId: text("externalId"),
+      createdAt: timestamp("createdAt", { precision: 3, mode: "date" })
+        .notNull()
+        .default(sql`CURRENT_TIMESTAMP`),
+    },
+    (table) => [uniqueIndex("Member_groupId_externalId_key").on(table.groupId, table.externalId)],
+  );
+
+  return { sessionCreationMode, groups, groupHosts, members };
 }
 
 export type TenantTables = ReturnType<typeof defineTenantTables>;
@@ -78,6 +109,7 @@ export const placeholderTenantTables = defineTenantTables(pgSchema(TENANT_SCHEMA
 export const sessionCreationMode = placeholderTenantTables.sessionCreationMode;
 export const groups = placeholderTenantTables.groups;
 export const groupHosts = placeholderTenantTables.groupHosts;
+export const members = placeholderTenantTables.members;
 
 export const SESSION_CREATION_MODES = sessionCreationMode.enumValues;
 export type SessionCreationMode = (typeof SESSION_CREATION_MODES)[number];

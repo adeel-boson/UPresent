@@ -158,6 +158,7 @@ describe("migrateTenantSchema", () => {
     await expect(tablesIn(TENANT_A)).resolves.toEqual([
       "Group",
       "GroupHost",
+      "Member",
       "__drizzle_migrations",
     ]);
   });
