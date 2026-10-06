@@ -7,4 +7,4 @@ CREATE TABLE "tenant"."Member" (
 );
 --> statement-breakpoint
 ALTER TABLE "tenant"."Member" ADD CONSTRAINT "Member_groupId_Group_id_fk" FOREIGN KEY ("groupId") REFERENCES "tenant"."Group"("id") ON DELETE cascade ON UPDATE cascade;--> statement-breakpoint
-CREATE UNIQUE INDEX "Member_groupId_externalId_key" ON "tenant"."Member" USING btree ("groupId","externalId");
+CREATE UNIQUE INDEX "Member_groupId_externalId_key" ON "tenant"."Member" USING btree ("groupId",lower("externalId"));

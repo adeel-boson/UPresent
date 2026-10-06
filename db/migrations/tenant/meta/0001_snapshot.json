@@ -1,5 +1,5 @@
 {
-  "id": "ffc824a6-81d8-48e8-b886-154217295b83",
+  "id": "f355b6a0-d17c-48ab-8d26-e7ec7bb80695",
   "prevId": "9839617d-b2f8-458d-a122-e41d264ddc73",
   "version": "7",
   "dialect": "postgresql",
@@ -151,9 +151,9 @@
               "nulls": "last"
             },
             {
-              "expression": "externalId",
-              "isExpression": false,
+              "expression": "lower(\"externalId\")",
               "asc": true,
+              "isExpression": true,
               "nulls": "last"
             }
           ],
