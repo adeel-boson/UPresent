@@ -41,7 +41,8 @@ describe("listRoster", () => {
   it("is empty for a new Group", async () => {
     await expect(listRoster({ actor: springfieldOrgAdmin, groupId })).resolves.toEqual({
       members: [],
-      hasNextPage: false,
+      page: 1,
+      pageCount: 1,
     });
   });
 
@@ -73,11 +74,36 @@ describe("listRoster", () => {
     expect(first.members).toHaveLength(50);
     expect(first.members[0]?.name).toBe("Member 01");
     expect(first.members[49]?.name).toBe("Member 50");
-    expect(first.hasNextPage).toBe(true);
+    expect(first.page).toBe(1);
+    expect(first.pageCount).toBe(2);
 
     const second = await listRoster({ actor: springfieldOrgAdmin, groupId, page: 2 });
     expect(second.members.map((member) => member.name)).toEqual(["Member 51"]);
-    expect(second.hasNextPage).toBe(false);
+    expect(second.page).toBe(2);
+    expect(second.pageCount).toBe(2);
+  });
+
+  it("shows the last page when asked for a page past the end", async () => {
+    for (let n = 1; n <= 51; n++) {
+      await addMember({
+        actor: springfieldOrgAdmin,
+        groupId,
+        name: `Member ${String(n).padStart(2, "0")}`,
+      });
+    }
+
+    const roster = await listRoster({ actor: springfieldOrgAdmin, groupId, page: 999 });
+    expect(roster.members.map((member) => member.name)).toEqual(["Member 51"]);
+    expect(roster.page).toBe(2);
+    expect(roster.pageCount).toBe(2);
+  });
+
+  it("shows the only page of an empty roster when asked for a later one", async () => {
+    await expect(listRoster({ actor: springfieldOrgAdmin, groupId, page: 2 })).resolves.toEqual({
+      members: [],
+      page: 1,
+      pageCount: 1,
+    });
   });
 
   it("doesn't find a Group of another Organization", async () => {

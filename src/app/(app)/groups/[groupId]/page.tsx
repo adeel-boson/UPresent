@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 
 import { takeAttendanceMyself } from "@/app/(app)/groups/[groupId]/actions";
@@ -52,6 +52,11 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
       notFound();
     }
     throw error;
+  }
+  // Asked for a page past the end, e.g. after removing the only Member on
+  // the last page: show the last real page under its own URL.
+  if (roster.page !== page) {
+    redirect(roster.page === 1 ? `/groups/${group.id}` : `/groups/${group.id}?page=${roster.page}`);
   }
   const isOrgAdminHosting = group.hosts.some((host) => host.id === orgAdmin.id);
 
@@ -120,7 +125,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
         </CardContent>
       </Card>
 
-      <RosterCard groupId={group.id} roster={roster} page={page} />
+      <RosterCard groupId={group.id} roster={roster} />
     </div>
   );
 }

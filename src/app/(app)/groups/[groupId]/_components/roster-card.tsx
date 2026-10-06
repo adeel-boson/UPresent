@@ -1,6 +1,6 @@
 import { removeMemberFromGroup } from "@/app/(app)/groups/[groupId]/actions";
 import { AddMemberForm } from "@/app/(app)/groups/[groupId]/_components/add-member-form";
-import { RemoveMemberButton } from "@/app/(app)/groups/[groupId]/_components/remove-member-button";
+import { RemoveMemberControl } from "@/app/(app)/groups/[groupId]/_components/remove-member-control";
 import { TextLink } from "@/components/navigation/text-link";
 import {
   Card,
@@ -12,16 +12,10 @@ import {
 } from "@/components/ui/card";
 import type { Roster } from "@/lib/members/list-roster";
 
-export function RosterCard({
-  groupId,
-  roster,
-  page,
-}: {
-  groupId: string;
-  roster: Roster;
-  page: number;
-}) {
+export function RosterCard({ groupId, roster }: { groupId: string; roster: Roster }) {
+  const { page, pageCount } = roster;
   const hasPreviousPage = page > 1;
+  const hasNextPage = page < pageCount;
 
   return (
     <Card>
@@ -36,13 +30,14 @@ export function RosterCard({
       <CardContent className="flex flex-col gap-6">
         <AddMemberForm groupId={groupId} />
         {roster.members.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {hasPreviousPage ? "No one on this page." : "No one on the roster yet."}
-          </p>
+          <p className="text-sm text-muted-foreground">No one on the roster yet.</p>
         ) : (
           <ul className="flex flex-col divide-y">
             {roster.members.map((member) => (
-              <li key={member.id} className="flex items-center justify-between gap-2 py-2">
+              <li
+                key={member.id}
+                className="flex flex-wrap items-center justify-between gap-2 py-2"
+              >
                 <span className="flex min-w-0 flex-col">
                   <span className="text-sm break-words">{member.name}</span>
                   {member.externalId ? (
@@ -51,16 +46,17 @@ export function RosterCard({
                     </span>
                   ) : null}
                 </span>
-                <form action={removeMemberFromGroup.bind(null, groupId, member.id)}>
-                  <RemoveMemberButton memberName={member.name} />
-                </form>
+                <RemoveMemberControl
+                  memberName={member.name}
+                  removeMember={removeMemberFromGroup.bind(null, groupId, member.id)}
+                />
               </li>
             ))}
           </ul>
         )}
       </CardContent>
-      {hasPreviousPage || roster.hasNextPage ? (
-        <CardFooter className="flex justify-between gap-4">
+      {pageCount > 1 ? (
+        <CardFooter className="flex items-center justify-between gap-4">
           {hasPreviousPage ? (
             <TextLink href={`/groups/${groupId}?page=${page - 1}`} className="text-sm">
               ← Previous
@@ -68,11 +64,16 @@ export function RosterCard({
           ) : (
             <span />
           )}
-          {roster.hasNextPage ? (
+          <span className="text-sm text-muted-foreground">
+            Page {page} of {pageCount}
+          </span>
+          {hasNextPage ? (
             <TextLink href={`/groups/${groupId}?page=${page + 1}`} className="text-sm">
               Next →
             </TextLink>
-          ) : null}
+          ) : (
+            <span />
+          )}
         </CardFooter>
       ) : null}
     </Card>

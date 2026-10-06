@@ -48,7 +48,8 @@ describe("addMember", () => {
 
     await expect(listRoster({ actor: springfieldOrgAdmin, groupId })).resolves.toEqual({
       members: [{ id, name: "Bart Simpson", externalId: "S-1001" }],
-      hasNextPage: false,
+      page: 1,
+      pageCount: 1,
     });
   });
 
@@ -75,6 +76,14 @@ describe("addMember", () => {
     ).rejects.toThrow(MemberExternalIdTakenError);
     const { members } = await listRoster({ actor: springfieldOrgAdmin, groupId });
     expect(members.map((member) => member.name)).toEqual(["Bart"]);
+  });
+
+  it("refuses an external ID that differs from one on the roster only in case", async () => {
+    await addMember({ actor: springfieldOrgAdmin, groupId, name: "Bart", externalId: "S-1001" });
+
+    await expect(
+      addMember({ actor: springfieldOrgAdmin, groupId, name: "Lisa", externalId: "s-1001" }),
+    ).rejects.toThrow(MemberExternalIdTakenError);
   });
 
   it("allows the same external ID on another Group's roster", async () => {

@@ -84,13 +84,19 @@ export function defineTenantTables(schema: PgSchema) {
       name: text("name").notNull(),
       // The Organization's own identifier for the person (e.g. a student
       // number), when it has one. Optional, but unique within a Group so it
-      // can tell two Members apart; NULLs don't collide.
+      // can tell two Members apart, ignoring case (S-1001 and s-1001 are the
+      // same ID); NULLs don't collide. Stored as typed.
       externalId: text("externalId"),
       createdAt: timestamp("createdAt", { precision: 3, mode: "date" })
         .notNull()
         .default(sql`CURRENT_TIMESTAMP`),
     },
-    (table) => [uniqueIndex("Member_groupId_externalId_key").on(table.groupId, table.externalId)],
+    (table) => [
+      uniqueIndex("Member_groupId_externalId_key").on(
+        table.groupId,
+        sql`lower(${table.externalId})`,
+      ),
+    ],
   );
 
   return { sessionCreationMode, groups, groupHosts, members };
