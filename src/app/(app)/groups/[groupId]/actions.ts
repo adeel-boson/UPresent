@@ -93,11 +93,14 @@ export async function addMemberToGroup(
 ): Promise<AddMemberState> {
   const orgAdmin = await requireRole("ORG_ADMIN");
   const id = groupIdSchema.parse(groupId);
+  const parsed = addMemberSchema.safeParse(Object.fromEntries(formData));
+  // What the org-admin typed, to put back in the form after an error.
+  const name = formData.get("name");
+  const externalId = formData.get("externalId");
   const fields = {
-    name: String(formData.get("name") ?? ""),
-    externalId: String(formData.get("externalId") ?? ""),
+    name: typeof name === "string" ? name : "",
+    externalId: typeof externalId === "string" ? externalId : "",
   };
-  const parsed = addMemberSchema.safeParse(fields);
   if (!parsed.success) {
     return {
       status: "error",
