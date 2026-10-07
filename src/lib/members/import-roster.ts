@@ -33,7 +33,7 @@ export type RosterImportReport = {
 
 // Bounds one import's work and transaction; a whole school year's Group is
 // far smaller.
-export const ROSTER_IMPORT_MAX_ROWS = 2000;
+const ROSTER_IMPORT_MAX_ROWS = 2000;
 
 export type RosterCsvProblem =
   | { kind: "NO_NAME_COLUMN" }
@@ -83,7 +83,7 @@ export async function importRoster(input: ImportRosterInput): Promise<RosterImpo
       for (const csvMember of csvMembers) {
         const identity = identityOf(csvMember);
         const reason =
-          invalidityOf(csvMember) ??
+          fieldRejectionOf(csvMember) ??
           (onRoster.has(identity)
             ? "ALREADY_ON_ROSTER"
             : inFile.has(identity)
@@ -97,12 +97,25 @@ export async function importRoster(input: ImportRosterInput): Promise<RosterImpo
         }
       }
 
-      if (toAdd.length > 0) {
-        await tx
-          .insert(members)
-          .values(toAdd.map(({ name, externalId }) => ({ groupId: group.id, name, externalId })));
+      if (toAdd.length === 0) {
+        return { addedCount: 0, rejectedRows };
       }
-      return { addedCount: toAdd.length, rejectedRows };
+      // The Group lock doesn't hold off a Member added by hand meanwhile, so
+      // the unique index has the last word on IDs: a row it refuses is on
+      // the roster after all, not a reason to fail the whole import.
+      const added = await tx
+        .insert(members)
+        .values(toAdd.map(({ name, externalId }) => ({ groupId: group.id, name, externalId })))
+        .onConflictDoNothing()
+        .returning({ externalId: members.externalId });
+      const addedExternalIds = new Set(added.map(({ externalId }) => externalId));
+      for (const { line, name, externalId } of toAdd) {
+        if (externalId && !addedExternalIds.has(externalId)) {
+          rejectedRows.push({ line, name, reason: "ALREADY_ON_ROSTER" });
+        }
+      }
+      rejectedRows.sort((a, b) => a.line - b.line);
+      return { addedCount: added.length, rejectedRows };
     });
   });
 }
@@ -135,9 +148,7 @@ function readCsvMembers(csv: string): CsvMember[] {
 
   return records.map(({ line, fields }) => ({
     line,
-    // A cell's line breaks and runs of spaces are spreadsheet formatting,
-    // not part of the name.
-    name: (fields[nameColumn] ?? "").replace(/\s+/g, " ").trim(),
+    name: normalizeName(fields[nameColumn] ?? ""),
     externalId: (fields[externalIdColumn] ?? "").trim() || undefined,
   }));
 }
@@ -148,10 +159,16 @@ function readCsvMembers(csv: string): CsvMember[] {
 function identityOf(member: { name: string; externalId?: string | null }): string {
   return member.externalId
     ? `id:${member.externalId.toLowerCase()}`
-    : `name:${member.name.toLowerCase()}`;
+    : `name:${normalizeName(member.name).toLowerCase()}`;
 }
 
-function invalidityOf(member: CsvMember): RosterImportRejection | undefined {
+// A cell's line breaks and runs of spaces are spreadsheet formatting, not
+// part of the name; names already on the roster are compared the same way.
+function normalizeName(name: string): string {
+  return name.replace(/\s+/g, " ").trim();
+}
+
+function fieldRejectionOf(member: CsvMember): RosterImportRejection | undefined {
   if (member.name === "") return "MISSING_NAME";
   if (member.name.length > MEMBER_NAME_MAX_LENGTH) return "NAME_TOO_LONG";
   if (member.externalId && member.externalId.length > MEMBER_EXTERNAL_ID_MAX_LENGTH) {

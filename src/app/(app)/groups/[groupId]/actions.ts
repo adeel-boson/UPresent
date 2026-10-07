@@ -111,7 +111,7 @@ export async function addMemberToGroup(
   if (!parsed.success) {
     return {
       status: "error",
-      error: "Enter a name of up to 200 characters, and an ID of up to 100.",
+      error: `Enter a name of up to ${MEMBER_NAME_MAX_LENGTH} characters, and an ID of up to ${MEMBER_EXTERNAL_ID_MAX_LENGTH}.`,
       fields,
     };
   }
@@ -142,11 +142,14 @@ export type ImportRosterState =
   | { status: "imported"; report: RosterImportReport };
 
 // Under Next's default 1 MB Server Action body limit with room for the
-// multipart overhead, and far more than ROSTER_IMPORT_MAX_ROWS rows need.
-const ROSTER_CSV_MAX_BYTES = 512 * 1024;
+// multipart overhead, and far more than an import's row limit needs.
+const ROSTER_CSV_MAX_KB = 512;
 
 const importRosterSchema = z.object({
-  file: z.file().min(1).max(ROSTER_CSV_MAX_BYTES),
+  file: z
+    .file()
+    .min(1)
+    .max(ROSTER_CSV_MAX_KB * 1024),
 });
 
 function describeCsvProblem(problem: RosterCsvProblem): string {
@@ -170,7 +173,7 @@ export async function importRosterToGroup(
   const id = groupIdSchema.parse(groupId);
   const parsed = importRosterSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
-    return { status: "error", error: "Choose a CSV file of up to 512 KB." };
+    return { status: "error", error: `Choose a CSV file of up to ${ROSTER_CSV_MAX_KB} KB.` };
   }
 
   let report: RosterImportReport;

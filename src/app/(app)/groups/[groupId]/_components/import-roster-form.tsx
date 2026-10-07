@@ -38,10 +38,10 @@ export function ImportRosterForm({ groupId }: { groupId: string }) {
           </AlertTitle>
           {report.rejectedRows.length > 0 && (
             <AlertDescription className="flex flex-col gap-2">
-              <p>
+              <span>
                 Skipped {report.rejectedRows.length}{" "}
                 {report.rejectedRows.length === 1 ? "row" : "rows"}:
-              </p>
+              </span>
               <ul className="flex max-h-60 flex-col gap-1 overflow-y-auto">
                 {report.rejectedRows.map((row) => (
                   <li key={row.line} className="break-words">

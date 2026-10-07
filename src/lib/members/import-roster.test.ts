@@ -139,6 +139,20 @@ describe("importRoster", () => {
     ]);
   });
 
+  it("keeps a quote inside an unquoted field as part of it", async () => {
+    const report = await importRoster({
+      actor: springfieldOrgAdmin,
+      groupId,
+      csv: 'Name,ID\nShauna O"Neil,S-1001\nBart "B" Simpson,S-1002\n',
+    });
+
+    expect(report).toEqual({ addedCount: 2, rejectedRows: [] });
+    await expect(rosterOf(groupId)).resolves.toEqual([
+      { name: 'Bart "B" Simpson', externalId: "S-1002" },
+      { name: 'Shauna O"Neil', externalId: "S-1001" },
+    ]);
+  });
+
   it("numbers rows by the line they start on", async () => {
     const report = await importRoster({
       actor: springfieldOrgAdmin,
@@ -186,6 +200,21 @@ describe("importRoster", () => {
       importRoster({ actor: springfieldHost, groupId, csv: "Name\nBart\n" }),
     ).rejects.toThrow(GroupManagementNotPermittedError);
     await expect(rosterOf(groupId)).resolves.toEqual([]);
+  });
+
+  it("matches a name on the roster ignoring runs of spaces", async () => {
+    await addMember({ actor: springfieldOrgAdmin, groupId, name: "Bart  Simpson" });
+
+    const report = await importRoster({
+      actor: springfieldOrgAdmin,
+      groupId,
+      csv: "Name\nBart Simpson\n",
+    });
+
+    expect(report).toEqual({
+      addedCount: 0,
+      rejectedRows: [{ line: 2, name: "Bart Simpson", reason: "ALREADY_ON_ROSTER" }],
+    });
   });
 
   it("adds a Member repeated in the file only once", async () => {
