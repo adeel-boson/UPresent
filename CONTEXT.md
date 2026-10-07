@@ -29,7 +29,7 @@ An email from an `org-admin` that makes someone a `host` of a `Group` and carrie
 _Avoid_: Signup, Registration (hosts never sign themselves up)
 
 **Member**:
-A person on a `Group`'s roster whose attendance is tracked (e.g., a student). Has no login/account in v1 — added via CSV import or manual entry, not self-registration. A roster entry belongs to one `Group`: it has a name and an optional **external ID** (the `Organization`'s own identifier for the person, e.g. a student number), unique within its `Group`. Removing a `Member` takes them off that roster.
+A person on a `Group`'s roster whose attendance is tracked (e.g., a student). Has no login/account in v1 — added via CSV import or manual entry, not self-registration. A roster entry belongs to one `Group`: it has a name and an optional **external ID** (the `Organization`'s own identifier for the person, e.g. a student number), unique within its `Group`. Removing a `Member` takes them off that roster. A CSV import skips anyone already on the roster: the same external ID (ignoring case), or, when neither has one, the same name.
 _Avoid_: Student, Attendee, Participant (use "Member" as the generic domain term; "student" etc. are fine in school-facing UI copy but not as the modeling term)
 
 **AttendanceRecord**:

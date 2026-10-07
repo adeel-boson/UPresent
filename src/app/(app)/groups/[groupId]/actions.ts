@@ -8,6 +8,13 @@ import { assignSelfAsHost } from "@/lib/groups/assign-self-as-host";
 import { GroupNotFoundError } from "@/lib/groups/errors";
 import { HostEmailNotInvitableError, inviteHost } from "@/lib/groups/invite-host";
 import { addMember, MemberExternalIdTakenError } from "@/lib/members/add";
+import {
+  importRoster,
+  RosterCsvUnreadableError,
+  type RosterCsvProblem,
+  type RosterImportReport,
+} from "@/lib/members/import-roster";
+import { MEMBER_EXTERNAL_ID_MAX_LENGTH, MEMBER_NAME_MAX_LENGTH } from "@/lib/members/member-fields";
 import { MemberNotFoundError, removeMember } from "@/lib/members/remove";
 
 export type InviteHostState =
@@ -76,12 +83,12 @@ export type AddMemberState =
   | { status: "added"; name: string };
 
 const addMemberSchema = z.object({
-  name: z.string().trim().min(1).max(200),
+  name: z.string().trim().min(1).max(MEMBER_NAME_MAX_LENGTH),
   // An empty field means no external ID.
   externalId: z
     .string()
     .trim()
-    .max(100)
+    .max(MEMBER_EXTERNAL_ID_MAX_LENGTH)
     .transform((value) => value || undefined),
 });
 
@@ -127,6 +134,64 @@ export async function addMemberToGroup(
 
   revalidatePath(`/groups/${id}`);
   return { status: "added", name: parsed.data.name };
+}
+
+export type ImportRosterState =
+  | { status: "idle" }
+  | { status: "error"; error: string }
+  | { status: "imported"; report: RosterImportReport };
+
+// Under Next's default 1 MB Server Action body limit with room for the
+// multipart overhead, and far more than ROSTER_IMPORT_MAX_ROWS rows need.
+const ROSTER_CSV_MAX_BYTES = 512 * 1024;
+
+const importRosterSchema = z.object({
+  file: z.file().min(1).max(ROSTER_CSV_MAX_BYTES),
+});
+
+function describeCsvProblem(problem: RosterCsvProblem): string {
+  switch (problem.kind) {
+    case "NO_NAME_COLUMN":
+      return "The first row must name the columns, with one called “Name”.";
+    case "UNCLOSED_QUOTE":
+      return `The quote on line ${problem.line} is never closed. Check the file and try again.`;
+    case "TOO_MANY_ROWS":
+      return `Import up to ${problem.maxRows} people at a time.`;
+  }
+}
+
+// Bound to the Group's id by the page (`importRosterToGroup.bind(null, id)`).
+export async function importRosterToGroup(
+  groupId: string,
+  _prevState: ImportRosterState,
+  formData: FormData,
+): Promise<ImportRosterState> {
+  const orgAdmin = await requireRole("ORG_ADMIN");
+  const id = groupIdSchema.parse(groupId);
+  const parsed = importRosterSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { status: "error", error: "Choose a CSV file of up to 512 KB." };
+  }
+
+  let report: RosterImportReport;
+  try {
+    report = await importRoster({
+      actor: orgAdmin,
+      groupId: id,
+      csv: await parsed.data.file.text(),
+    });
+  } catch (error) {
+    if (error instanceof RosterCsvUnreadableError) {
+      return { status: "error", error: describeCsvProblem(error.problem) };
+    }
+    if (error instanceof GroupNotFoundError) {
+      return { status: "error", error: "This group no longer exists." };
+    }
+    throw error;
+  }
+
+  revalidatePath(`/groups/${id}`);
+  return { status: "imported", report };
 }
 
 const memberIdSchema = z.string().min(1);
