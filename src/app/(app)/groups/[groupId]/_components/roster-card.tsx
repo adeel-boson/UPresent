@@ -1,5 +1,6 @@
 import { removeMemberFromGroup } from "@/app/(app)/groups/[groupId]/actions";
 import { AddMemberForm } from "@/app/(app)/groups/[groupId]/_components/add-member-form";
+import { ImportRosterForm } from "@/app/(app)/groups/[groupId]/_components/import-roster-form";
 import { RemoveMemberControl } from "@/app/(app)/groups/[groupId]/_components/remove-member-control";
 import { TextLink } from "@/components/navigation/text-link";
 import {
@@ -29,6 +30,15 @@ export function RosterCard({ groupId, roster }: { groupId: string; roster: Roste
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <AddMemberForm groupId={groupId} />
+        <section
+          aria-labelledby="import-roster-heading"
+          className="flex flex-col gap-3 border-t pt-6"
+        >
+          <h3 id="import-roster-heading" className="font-medium">
+            Import from a CSV file
+          </h3>
+          <ImportRosterForm groupId={groupId} />
+        </section>
         {roster.members.length === 0 ? (
           <p className="text-sm text-muted-foreground">No one on the roster yet.</p>
         ) : (

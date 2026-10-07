@@ -8,6 +8,7 @@ import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MEMBER_EXTERNAL_ID_MAX_LENGTH, MEMBER_NAME_MAX_LENGTH } from "@/lib/members/member-fields";
 
 const initialState: AddMemberState = { status: "idle" };
 
@@ -36,7 +37,7 @@ export function AddMemberForm({ groupId }: { groupId: string }) {
             name="name"
             type="text"
             required
-            maxLength={200}
+            maxLength={MEMBER_NAME_MAX_LENGTH}
             autoComplete="off"
             defaultValue={fields?.name}
           />
@@ -47,7 +48,7 @@ export function AddMemberForm({ groupId }: { groupId: string }) {
             id="member-external-id"
             name="externalId"
             type="text"
-            maxLength={100}
+            maxLength={MEMBER_EXTERNAL_ID_MAX_LENGTH}
             autoComplete="off"
             placeholder="e.g. student number"
             defaultValue={fields?.externalId}
