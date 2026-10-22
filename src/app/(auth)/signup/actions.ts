@@ -3,7 +3,7 @@
 import { z } from "zod";
 
 import { institutionTypeEnum } from "@/lib/db/schema";
-import { EmailAlreadyInUseError, signUpOrganization } from "@/lib/organizations/signup";
+import { signUpOrganization } from "@/lib/organizations/signup";
 
 // What the form re-renders with after a failed submit, so the user doesn't
 // retype it. The password is deliberately never sent back.
@@ -47,18 +47,9 @@ export async function signup(_prevState: SignupState, formData: FormData): Promi
     };
   }
 
-  try {
-    await signUpOrganization(parsed.data);
-  } catch (error) {
-    if (error instanceof EmailAlreadyInUseError) {
-      return {
-        status: "error",
-        error: "That email is already in use.",
-        fields: readSubmittedFields(formData),
-      };
-    }
-    throw error;
-  }
+  // Resolves the same whether or not the email already has an account (the
+  // owner is emailed instead), so this never reveals which emails do.
+  await signUpOrganization(parsed.data);
 
   return { status: "submitted" };
 }

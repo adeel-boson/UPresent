@@ -49,6 +49,11 @@ export const authConfig = {
       if (session.user && token.role) {
         session.user.role = token.role;
       }
+      // Auth.js keeps the user's id in the JWT's `sub` but leaves it off the
+      // session; pages need it to load the user's own Organization.
+      if (session.user && token.sub) {
+        session.user.id = token.sub;
+      }
       return session;
     },
   },

@@ -34,11 +34,12 @@ export function SignupForm() {
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">
-            <h1>Request received</h1>
+            <h1>Check your email</h1>
           </CardTitle>
           <CardDescription>
-            Thanks — your organization signup is pending approval. You&apos;ll be able to log in
-            once a super-admin approves it.
+            Thanks — we&apos;ve sent a link to your email. Open it to verify your address.
+            You&apos;ll be able to log in once your email is verified and a super-admin approves
+            your organization.
           </CardDescription>
         </CardHeader>
       </Card>
